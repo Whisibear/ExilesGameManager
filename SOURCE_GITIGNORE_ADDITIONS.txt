@@ -1,0 +1,43 @@
+# Add these entries to the existing repository .gitignore if they are not already present.
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+.venv312/
+venv/
+
+# Frontend
+web/node_modules/
+web/dist/
+
+# Build output
+build/
+dist/
+installer_output/
+
+# Runtime data
+data/
+logs/
+diagnostics/
+backups/
+servers/
+*.log
+backend.log
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Internal and local project material
+.claude/
+tickets/
+wiki/
+release-assets/
+EGM-Releases/

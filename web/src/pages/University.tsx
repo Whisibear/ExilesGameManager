@@ -1,0 +1,244 @@
+import * as React from "react";
+import { useNavigate } from "react-router-dom";
+import { Award, Check, Circle, GraduationCap, LockKeyhole, Play, RotateCcw, ShieldCheck } from "lucide-react";
+import { universityApi } from "@/api";
+import { ActionButton } from "@/components/ui/egm-button";
+import { Panel } from "@/components/ui/panel";
+import { UNIVERSITY_UPDATED } from "@/components/university/UniversityQuestTracker";
+import { useNotifications } from "@/hooks/useNotifications";
+import type { UniversityCatalog, UniversityCourse } from "@/types/models";
+
+const CELEBRATED_KEY_PREFIX = "university:celebrated:";
+
+function hasCelebrated(courseId: string, graduatedAt: number): boolean {
+  return localStorage.getItem(CELEBRATED_KEY_PREFIX + courseId) === String(graduatedAt);
+}
+
+function markCelebrated(courseId: string, graduatedAt: number): void {
+  localStorage.setItem(CELEBRATED_KEY_PREFIX + courseId, String(graduatedAt));
+}
+
+function Confetti() {
+  const colors = ["#dfb15a", "#7dd3fc", "#86efac", "#c084fc"];
+  return (
+    <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
+      {Array.from({ length: 48 }, (_, i) => (
+        <span
+          key={i}
+          className="absolute top-[-5%] h-3 w-2 animate-[fall_2.8s_ease-in_forwards]"
+          style={{
+            left: `${(i * 37) % 100}%`,
+            backgroundColor: colors[i % colors.length],
+            animationDelay: `${(i % 12) * 0.08}s`,
+            transform: `rotate(${i * 29}deg)`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function CongratulationsBanner({ course, onDismiss }: { course: UniversityCourse; onDismiss: () => void }) {
+  return (
+    <div className="rounded-lg border-2 border-life-500/60 bg-life-950/20 p-6 text-center shadow-egm-lime">
+      <Award className="mx-auto h-12 w-12 text-life-300" />
+      <h2 className="mt-2 font-display text-2xl text-life-200">Congratulations!</h2>
+      <p className="mt-1 text-sm text-parchment-300/70">
+        You've graduated from <span className="text-life-300">{course.title}</span>.
+      </p>
+      <ActionButton size="sm" variant="ghost" className="mt-4" onClick={onDismiss}>
+        Nice!
+      </ActionButton>
+    </div>
+  );
+}
+
+function Diploma({ course, onRetake, busy }: { course: UniversityCourse; onRetake: () => void; busy: boolean }) {
+  return (
+    <div className="rounded-lg border-2 border-life-500/60 bg-life-950/20 p-5 text-center shadow-egm-lime">
+      <Award className="mx-auto h-10 w-10 text-life-300" />
+      <p className="mt-2 text-xs uppercase tracking-[0.25em] text-life-400/70">Diploma awarded</p>
+      <h3 className="mt-1 font-display text-xl text-life-200">{course.title}</h3>
+      <p className="mt-1 text-xs text-parchment-300/50">
+        Completed {new Date((course.graduatedAt ?? 0) * 1000).toLocaleDateString()}
+      </p>
+      <ActionButton size="sm" variant="ghost" icon={<RotateCcw />} disabled={busy} onClick={onRetake} className="mt-3">
+        Retake
+      </ActionButton>
+    </div>
+  );
+}
+
+export default function University() {
+  const navigate = useNavigate();
+  const notifications = useNotifications();
+  const [catalog, setCatalog] = React.useState<UniversityCatalog | null>(null);
+  const [celebrate, setCelebrate] = React.useState(false);
+  const [celebrateCourse, setCelebrateCourse] = React.useState<UniversityCourse | null>(null);
+  const [busy, setBusy] = React.useState(false);
+
+  function celebrateGraduation(course: UniversityCourse) {
+    setCelebrateCourse(course);
+    setCelebrate(true);
+    window.setTimeout(() => setCelebrate(false), 3200);
+    if (course.graduatedAt) markCelebrated(course.id, course.graduatedAt);
+  }
+
+  React.useEffect(() => {
+    universityApi
+      .getCatalog()
+      .then((data) => {
+        setCatalog(data);
+        // Most lessons now complete on other pages, so a graduation might
+        // never have been seen live - catch up here the next time the
+        // academy is visited, instead of only celebrating an in-the-moment
+        // completion on this exact page.
+        const freshlyGraduated = data.courses.find(
+          (c) => c.graduatedAt !== null && !hasCelebrated(c.id, c.graduatedAt!)
+        );
+        if (freshlyGraduated) celebrateGraduation(freshlyGraduated);
+      })
+      .catch((e) => notifications.error({ title: "Could not open EGM University", message: e.message }));
+  }, [notifications]);
+
+  async function apply(action: () => Promise<UniversityCatalog>, wasGraduated = false) {
+    setBusy(true);
+    try {
+      const next = await action();
+      setCatalog(next);
+      window.dispatchEvent(new Event(UNIVERSITY_UPDATED));
+      if (!wasGraduated && next.activeCourse === null) {
+        const graduated = next.courses.find((c) => c.graduatedAt !== null && !hasCelebrated(c.id, c.graduatedAt!));
+        if (graduated) celebrateGraduation(graduated);
+      }
+    } catch (e) {
+      notifications.error({ title: "Lesson not completed", message: e instanceof Error ? e.message : "Try again." });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!catalog) return <p className="text-parchment-300/60">Opening the academy...</p>;
+  const active = catalog.courses.find((course) => course.id === catalog.activeCourse);
+
+  return (
+    <div className="space-y-6">
+      {celebrate && <Confetti />}
+      {celebrateCourse && <CongratulationsBanner course={celebrateCourse} onDismiss={() => setCelebrateCourse(null)} />}
+      <header>
+        <div className="flex items-center gap-3">
+          <GraduationCap className="h-9 w-9 text-life-400" />
+          <div>
+            <h1 className="font-display text-3xl text-gradient-egm">EGM University</h1>
+            <p className="text-sm text-parchment-300/60">
+              Learn EGM through a clear, guided workflow and track your completed training.
+            </p>
+          </div>
+        </div>
+      </header>
+
+      {active && (
+        <Panel title={`Active quest: ${active.shortTitle}`} icon={<ShieldCheck />}>
+          <div className="space-y-3">
+            {active.steps.map((step, index) => {
+              const isNext = !step.completed && !step.locked;
+              return (
+                <div
+                  key={step.id}
+                  className={`rounded-md border p-4 ${isNext ? "border-life-500/50 bg-life-950/20" : "border-stone-700 bg-abyss-950/30"}`}
+                >
+                  <div className="flex gap-3">
+                    {step.completed ? (
+                      <Check className="mt-0.5 h-5 w-5 text-life-400" />
+                    ) : step.locked ? (
+                      <LockKeyhole className="mt-0.5 h-5 w-5 text-stone-500" />
+                    ) : (
+                      <Circle className="mt-0.5 h-5 w-5 text-life-400" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="font-display text-parchment-100">
+                        {index + 1}. {step.title}
+                      </p>
+                      <p className="mt-1 text-sm text-parchment-300/60">{step.description}</p>
+                      {isNext && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <ActionButton size="sm" variant="ghost" onClick={() => navigate(step.route)}>
+                            Open the right page
+                          </ActionButton>
+                          <ActionButton
+                            size="sm"
+                            icon={<Check />}
+                            disabled={busy}
+                            onClick={() =>
+                              apply(() => universityApi.completeStep(active.id, step.id), Boolean(active.graduatedAt))
+                            }
+                          >
+                            I completed this
+                          </ActionButton>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Panel>
+      )}
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <Panel title="Available training" icon={<Play />}>
+          <div className="space-y-3">
+            {catalog.courses.map((course) => {
+              const prerequisite =
+                course.requires && !catalog.courses.find((item) => item.id === course.requires)?.graduatedAt;
+              return (
+                <div key={course.id} className="rounded-md border border-stone-700 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-display text-life-200">{course.shortTitle}</h3>
+                      {course.description && (
+                        <p className="mt-0.5 text-sm text-parchment-300/70">{course.description}</p>
+                      )}
+                      <p className="mt-1 text-sm text-parchment-300/60">{course.steps.length} ordered lessons</p>
+                    </div>
+                    {course.graduatedAt ? (
+                      <Award className="text-life-300" />
+                    ) : course.active ? (
+                      <span className="text-xs text-life-400">Active</span>
+                    ) : (
+                      <ActionButton
+                        size="sm"
+                        disabled={Boolean(prerequisite) || busy}
+                        onClick={() => apply(() => universityApi.activate(course.id))}
+                      >
+                        {prerequisite ? "Locked" : "Activate"}
+                      </ActionButton>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Panel>
+        <Panel title="My diplomas" icon={<Award />}>
+          <div className="space-y-3">
+            {catalog.courses
+              .filter((course) => course.graduatedAt)
+              .map((course) => (
+                <Diploma
+                  key={course.id}
+                  course={course}
+                  busy={busy}
+                  onRetake={() => apply(() => universityApi.retake(course.id))}
+                />
+              ))}
+            {!catalog.courses.some((course) => course.graduatedAt) && (
+              <p className="text-sm text-parchment-300/50">Your earned diplomas will be displayed here.</p>
+            )}
+          </div>
+        </Panel>
+      </div>
+    </div>
+  );
+}

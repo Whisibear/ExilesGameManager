@@ -1,0 +1,483 @@
+{
+  "nav": {
+    "allServers": "All Servers",
+    "dashboard": "Dashboard",
+    "mods": "Mods",
+    "control": "Server Control",
+    "worldSettings": "World Settings",
+    "launcherOptions": "Launcher Options",
+    "logs": "Logs",
+    "university": "EGM University",
+    "settings": "Settings",
+    "superAdmin": "Super Admin",
+    "modWishlist": "Mod Wishlist",
+    "performance": "Performance",
+    "backupCenter": "Backup Center",
+    "firewall": "Firewall",
+    "taskQueue": "Task Queue",
+    "activity": "Activity",
+    "groups": {
+      "servers": "Servers",
+      "server": "Server",
+      "operations": "Operations",
+      "maintenance": "Maintenance",
+      "administration": "Administration"
+    }
+  },
+  "topbar": {
+    "pages": {
+      "dashboard": {
+        "title": "Dashboard",
+        "subtitle": "Server health, players, performance, and operations at a glance"
+      },
+      "mods": {
+        "title": "Mods",
+        "subtitle": "Enchantments woven into your server"
+      },
+      "control": {
+        "title": "Server Control",
+        "subtitle": "Start, stop, restart, update, save, and communicate with the selected server"
+      },
+      "worldSettings": {
+        "title": "World Settings",
+        "subtitle": "Every rule your server's config file can express"
+      },
+      "launcherOptions": {
+        "title": "Launcher Options",
+        "subtitle": "Startup arguments for the selected server"
+      },
+      "logs": {
+        "title": "Logs",
+        "subtitle": "The chronicle of recent events"
+      },
+      "settings": {
+        "title": "Settings",
+        "subtitle": "Configure the laws of your world"
+      },
+      "superAdmin": {
+        "title": "Super Admin",
+        "subtitle": "Network exposure and access, reserved for the host"
+      },
+      "modWishlist": {
+        "title": "Mod Wishlist",
+        "subtitle": "Approve or deny mod requests from other admins"
+      },
+      "servers": {
+        "title": "All Servers",
+        "subtitle": "Select and manage a server instance."
+      },
+      "performance": {
+        "title": "Performance",
+        "subtitle": "Live resource usage for the selected server."
+      },
+      "backupCenter": {
+        "title": "Backup Center",
+        "subtitle": "Manage backups for every server instance."
+      },
+      "firewall": {
+        "title": "Firewall",
+        "subtitle": "Inspect and manage Windows Firewall rules."
+      },
+      "university": {
+        "title": "EGM University",
+        "subtitle": "Learn how to configure and operate ExilesGameManager."
+      },
+      "taskQueue": {
+        "title": "Task Queue",
+        "subtitle": "Queued and running background operations"
+      },
+      "activity": {
+        "title": "Activity Center",
+        "subtitle": "Unified server, application, and task history"
+      }
+    },
+    "instanceSwitcher": {
+      "currentServer": "Current Server:",
+      "noServerSelected": "No server selected",
+      "noServersYet": "No servers yet",
+      "newServer": "New Server..."
+    },
+    "userMenu": {
+      "superAdmin": "Super Admin",
+      "admin": "Admin",
+      "logOut": "Log Out"
+    },
+    "languageSwitcher": {
+      "label": "Language"
+    }
+  },
+  "launcherOptions": {
+    "firewallNoticeTitle": "Windows firewall and internet access",
+    "firewallNoticeIntro": "ExilesGameManager manages only the local Windows Firewall rules for this server instance.",
+    "firewallNoticeRouterTitle": "Router or hosting provider",
+    "firewallNoticeRouterBody": "For access from the internet, the Game Port and, when enabled, the Steam Query Port must also be forwarded or allowed in your router, cloud firewall, or dedicated-server provider panel.",
+    "firewallNoticeRestTitle": "Keep the REST API private",
+    "firewallNoticeRestBody": "Do not expose the REST API port directly to the public internet when ExilesGameManager uses it locally. Restrict it to localhost or a trusted private network."
+  },
+  "serverSelection": {
+    "title": "Your dedicated servers",
+    "subtitle": "Select a server to open its isolated management area, import an existing installation, or deploy a new server.",
+    "loading": "Loading servers...",
+    "empty": "Import an existing Palworld Dedicated Server or deploy your first isolated server instance.",
+    "map": "Map",
+    "uptime": "Uptime",
+    "players": "Players",
+    "lastSave": "Last save",
+    "never": "Never",
+    "states": {
+      "online": "ONLINE",
+      "offline": "OFFLINE",
+      "starting": "STARTING",
+      "stopping": "STOPPING",
+      "unknown": "UNKNOWN"
+    },
+    "eyebrow": "Self-hosted server control",
+    "dashboard": "Dashboard",
+    "importServer": "Import Server",
+    "newServer": "New Server",
+    "emptyTitle": "No servers registered",
+    "summary": {
+      "servers": "Servers",
+      "online": "Online",
+      "players": "Players"
+    },
+    "managedInstance": "Managed instance",
+    "openDashboard": "Open dashboard"
+  },
+  "firewall": {
+    "title": "Firewall Management",
+    "description": "Inspect, synchronize, repair, and remove Windows Firewall rules for every managed server."
+  },
+  "backupCenter": {
+    "title": "Backup Center",
+    "description": "Manage, verify, restore, export, and delete backups for every server instance.",
+    "loading": "Loading backups...",
+    "none": "No backups yet.",
+    "backupNow": "Backup Now",
+    "verify": "Verify",
+    "export": "Export",
+    "restore": "Restore",
+    "restoreTitle": "Restore backup?",
+    "restoreWarning": "The selected server will be stopped if necessary and its current save will be replaced. A rollback snapshot is created automatically.",
+    "confirmDelete": "Delete this backup permanently?",
+    "complete": "Backup complete",
+    "failed": "Backup failed",
+    "loadFailed": "Could not load backups",
+    "verifyResult": "Verification: {{status}}",
+    "restored": "Backup restored",
+    "restoreFailed": "Restore failed",
+    "scope": "Backups include the complete Pal/Saved folder, including configuration, world saves, logs, and crash data."
+  },
+  "performance": {
+    "title": "Performance Monitor",
+    "loading": "Loading live performance data...",
+    "uptime": "Uptime",
+    "refresh": "Live refresh: 2 seconds",
+    "serverCpu": "Server CPU",
+    "serverRam": "Server RAM",
+    "systemCpu": "System CPU",
+    "systemRam": "System RAM",
+    "ofTotal": "of {{total}}",
+    "storage": "Storage",
+    "read": "Read",
+    "write": "Write",
+    "network": "Network",
+    "download": "Download",
+    "upload": "Upload"
+  },
+  "taskQueue": {
+    "title": "Task Queue",
+    "description": "Monitor and control long-running operations. Tasks are serialized per server so backups, updates, restores, firewall changes, and mod operations cannot modify the same instance at the same time.",
+    "clearCompleted": "Clear completed",
+    "searchPlaceholder": "Search tasks…",
+    "filters": {
+      "allStatuses": "All statuses",
+      "allServers": "All servers"
+    },
+    "queueTitle": "Operations",
+    "detailsTitle": "Task details",
+    "empty": "No tasks match the current filters.",
+    "selectTask": "Select a task to inspect progress and logs.",
+    "global": "Global",
+    "server": "Server",
+    "priority": "Priority",
+    "created": "Created",
+    "started": "Started",
+    "liveLog": "Live log",
+    "noLog": "No log output yet.",
+    "actions": {
+      "pause": "Pause",
+      "resume": "Resume",
+      "cancel": "Cancel",
+      "retry": "Retry"
+    },
+    "status": {
+      "queued": "Queued",
+      "running": "Running",
+      "paused": "Paused",
+      "cancelling": "Cancelling",
+      "completed": "Completed",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    }
+  },
+  "activityCenter": {
+    "title": "Activity Center",
+    "description": "A live, searchable timeline of server activity, application events, and completed background tasks.",
+    "search": "Search activity…",
+    "allServers": "All servers",
+    "timeline": "Activity timeline",
+    "empty": "No activity matches the selected filters.",
+    "categories": {
+      "all": "All",
+      "server": "Server",
+      "task": "Task Queue",
+      "application": "Application"
+    },
+    "levels": {
+      "all": "All",
+      "info": "Info",
+      "warning": "Warnings",
+      "error": "Errors",
+      "debug": "Debug"
+    },
+    "sources": {
+      "egmUpdateService": "EGM Update Service",
+      "backendService": "Backend Service",
+      "steamWorkshop": "Steam Workshop",
+      "performanceMonitor": "Performance Monitor",
+      "taskQueue": "Task Queue"
+    },
+    "technicalDetails": "Technical details"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "unread": "{{count}} unread",
+    "open": "Open notifications",
+    "markAllRead": "Mark all as read",
+    "clearRead": "Clear read notifications",
+    "viewAll": "View all activity",
+    "empty": "No notifications yet.",
+    "task": {
+      "completed": {
+        "title": "Task completed",
+        "message": "{{title}} completed successfully."
+      },
+      "failed": {
+        "title": "Task failed",
+        "message": "{{title}} failed: {{error}}"
+      },
+      "cancelled": {
+        "title": "Task cancelled",
+        "message": "{{title}} was cancelled."
+      }
+    },
+    "server": {
+      "warning": {
+        "title": "Server warning"
+      },
+      "error": {
+        "title": "Server error"
+      },
+      "event": {
+        "message": "{{server}}: {{message}}"
+      }
+    },
+    "application": {
+      "warning": {
+        "title": "Application warning"
+      },
+      "error": {
+        "title": "Application error"
+      },
+      "event": {
+        "message": "{{component}}: {{message}}"
+      }
+    },
+    "appUpdate": {
+      "title": "New EGM version available",
+      "message": "Exiles Game Manager {{version}} is ready to install."
+    }
+  },
+  "appUpdate": {
+    "notConfigured": "Update service not configured.",
+    "unavailable": "Update server is currently unavailable."
+  },
+  "dashboard": {
+    "selectServerTitle": "Select a server to continue",
+    "selectServerDescription": "Choose an existing server, import an installation, or deploy a new dedicated server before opening its management dashboard.",
+    "recentActivity": "Recent activity",
+    "runningTasks": "Running tasks",
+    "quickLinks": "Management shortcuts",
+    "noActivity": "No recent activity.",
+    "noRunningTasks": "No active background tasks.",
+    "links": {
+      "control": "Start, stop, restart, save, and update.",
+      "mods": "Manage Steam Workshop, Nexus, and UE4SS.",
+      "backups": "Create, verify, restore, and export backups.",
+      "firewall": "Inspect and synchronize Windows Firewall rules."
+    }
+  },
+  "common": {
+    "viewAll": "View all"
+  },
+  "auth": {
+    "common": {
+      "username": "Username",
+      "password": "Password",
+      "working": "Signing in...",
+      "genericError": "Something went wrong."
+    },
+    "login": {
+      "title": "Secure sign in",
+      "subtitle": "Access your self-hosted management workspace.",
+      "tab": "Log in",
+      "submit": "Log in",
+      "privateAccess": "Private self-hosted access",
+      "heroTitle": "Your servers. Your infrastructure. Your control.",
+      "heroText": "Manage dedicated servers, automation, backups, mods, monitoring, and security from one consistent local workspace.",
+      "features": {
+        "servers": "Multi-server management",
+        "serversText": "Operate multiple isolated server instances from a single interface.",
+        "automation": "Reliable operations",
+        "automationText": "Run updates, backups, restores, and maintenance through the task queue.",
+        "secure": "Designed for self-hosting",
+        "secureText": "Your credentials and server data remain on the machine you control."
+      },
+      "footer": "Exiles Game Manager · Self-hosted server administration",
+      "localNotice": "Secure connection to your locally hosted EGM instance."
+    },
+    "register": {
+      "title": "Join this EGM instance",
+      "subtitle": "Create an account with an invitation from an administrator.",
+      "tab": "I have an invite",
+      "inviteCode": "Invite code",
+      "invitePlaceholder": "Enter the invitation code",
+      "submit": "Create account"
+    },
+    "setup": {
+      "title": "Initialize EGM",
+      "subtitle": "Create the permanent super administrator account.",
+      "firstRun": "First-run setup",
+      "heroTitle": "Prepare your self-hosted management platform.",
+      "heroText": "This one-time setup creates the first account and secures access to this EGM installation.",
+      "description": "No administrator exists on this machine yet. The account created here becomes the permanent super administrator and can grant access to additional users.",
+      "securityTitle": "Local security boundary",
+      "confirmPassword": "Confirm password",
+      "passwordMismatch": "Passwords do not match.",
+      "createError": "Could not create the account.",
+      "creating": "Creating account...",
+      "submit": "Create super admin account",
+      "points": {
+        "local": "The platform remains fully self-hosted.",
+        "superAdmin": "The first account receives super admin permissions.",
+        "ready": "You can import or deploy servers immediately after setup."
+      }
+    }
+  },
+  "superAdmin": {
+    "diagnostics": {
+      "createPackage": "Create Diagnostic Package",
+      "packageReadyTitle": "Diagnostic package ready",
+      "packageReadyMessage": "The audit package can now be downloaded.",
+      "enableDebug": "Enable Debug Logging",
+      "disableDebug": "Disable Debug Logging"
+    },
+    "modWishlist": {
+      "nexusTitle": "Mod Wishlist — Nexus Mods",
+      "steamTitle": "Mod Wishlist — Steam Workshop",
+      "nexusDescription": "Review Nexus Mods requested by administrators.",
+      "steamDescription": "Download requested items through SteamCMD first, then approve them for the selected server.",
+      "emptyNexus": "No Nexus Mods requests are waiting.",
+      "emptySteam": "No Steam Workshop requests are waiting."
+    }
+  },
+  "settings": {
+    "deploy": {
+      "queryPort": "Steam Query Port"
+    }
+  },
+  "steamCmdAuth": {
+    "title": "Steam Workshop Access",
+    "connected": "Temporary SteamCMD session connected. Credentials are not stored.",
+    "description": "Anonymous downloads are tried first. Sign in temporarily only when Palworld blocks anonymous Workshop access.",
+    "disconnect": "Disconnect SteamCMD",
+    "signIn": "Sign in to SteamCMD",
+    "security": "The password and Steam Guard code are used only in memory for this temporary session. They are never saved or written to EGM logs.",
+    "guard": "Steam Guard code",
+    "username": "Steam account name",
+    "password": "Steam password",
+    "verify": "Verify",
+    "guardRequired": "Steam Guard verification is required to finish the temporary sign-in.",
+    "enterGuard": "Enter Steam Guard code",
+    "signingIn": "Signing in...",
+    "guardTitle": "Steam Guard verification",
+    "guardDescription": "Enter the current code from the Steam Mobile app or the email sent by Steam. The code is used only in memory and is never logged.",
+    "cancelSession": "Cancel sign-in",
+    "verifying": "Verifying...",
+    "openConsole": "Open SteamCMD Console",
+    "consoleHint": "Anonymous downloads are attempted first. Open the normal SteamCMD console only when Steam requires an authenticated account.",
+    "securityHint": "Credentials, Steam Guard codes, and commands stay inside the external SteamCMD window.",
+    "superAdminHint": "Download requested Workshop items here, then approve them from the Steam Workshop Wishlist."
+  },
+  "mods": {
+    "cache": {
+      "title": "Downloaded Workshop Mods",
+      "rescan": "Rescan Workshop Cache",
+      "description": "Mods downloaded through the external SteamCMD console appear here automatically. Install or update them for the currently selected server with one click.",
+      "empty": "No downloaded Palworld Workshop mods were detected.",
+      "detectedTitle": "Workshop mod detected",
+      "detectedMessage": "{{name}} is ready to install.",
+      "ready": "Ready to install",
+      "updateAvailable": "Update available",
+      "installed": "Installed",
+      "invalid": "Invalid",
+      "install": "Install",
+      "update": "Update",
+      "installedTitle": "Workshop mod installed",
+      "updatedTitle": "Workshop mod updated",
+      "installedMessage": "{{name}} was installed for the selected server.",
+      "installFailedTitle": "Workshop installation failed"
+    },
+    "browseWorkshop": "Browse Steam Workshop",
+    "workshop": {
+      "title": "Browse Steam Workshop",
+      "description": "Search Palworld Workshop mods and add any of them to the server wishlist for the super admin to review.",
+      "steamCmdSuperAdminHint": "Open SteamCMD Console is available in Super Admin below Nexus Mods Integration."
+    },
+    "steamBrowser": {
+      "title": "Browse Steam Workshop",
+      "description": "Search Palworld Workshop mods and add any of them to the server wishlist for the super admin to review.",
+      "banner": "Browse public Steam Workshop information and add mods to the server wishlist. The super admin decides whether to install each request.",
+      "search": "Search all Steam Workshop mods by name...",
+      "loading": "Loading Steam Workshop...",
+      "view": "View on Steam",
+      "add": "Add to Wishlist",
+      "added": "Wishlisted",
+      "requestedTitle": "Added to server wishlist",
+      "requestedMessage": "{{name}} is waiting for super-admin review.",
+      "error": "Failed to load Steam Workshop mods.",
+      "trending": "Trending",
+      "latestAdded": "Latest Added",
+      "latestUpdated": "Latest Updated",
+      "byAuthor": "by {{author}}",
+      "addFailed": "Could not add mod"
+    },
+    "steamWishlist": {
+      "title": "Steam Workshop Wishlist",
+      "description": "Steam Workshop requests are managed separately from Nexus Mods. The super admin downloads approved items through SteamCMD and installs them for the selected server.",
+      "empty": "No Steam Workshop mods are waiting for approval."
+    },
+    "card": {
+      "deployedByPalworld": "Deployed by Palworld",
+      "deploymentDisabled": "Disabled",
+      "restartFailed": "Server restart failed",
+      "deploymentPending": "Deployment pending"
+    }
+  },
+  "updates": {
+    "available": "EGM {{version}} available",
+    "installing": "Installing update…",
+    "confirmInstall": "Install EGM {{version}} now? EGM will close automatically."
+  }
+}
