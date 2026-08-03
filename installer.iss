@@ -1,4 +1,4 @@
-﻿#define MyAppName "Exiles Game Manager"
+#define MyAppName "Exiles Game Manager"
 #define MyAppVersion "0.8.0"
 #define MyAppPublisher "Whisibear EGM"
 #define MyAppURL "https://github.com/Whisibear/ExilesGameManager"
@@ -17,7 +17,7 @@ VersionInfoVersion={#MyAppVersion}.0
 VersionInfoCompany={#MyAppPublisher}
 VersionInfoDescription={#MyAppName} Setup
 VersionInfoProductName={#MyAppName}
-VersionInfoProductVersion={#MyAppVersion}.0
+VersionInfoProductVersion=0.8.0.0
 VersionInfoCopyright=Copyright (c) 2026 Kvitekvist; Copyright (c) 2026 Whisibear EGM
 DefaultDirName={autopf}\Exiles Game Manager
 DefaultGroupName={#MyAppName}

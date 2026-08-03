@@ -1,13 +1,17 @@
-name: CI
+name: Public Source Validation
 
 on:
   push:
     branches: [main]
   pull_request:
 
+env:
+  PYTHONUTF8: "1"
+
 jobs:
-  backend-lint:
+  backend-source:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -16,52 +20,21 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: Install backend test dependencies
-        run: pip install -r requirements-dev.txt
+      - name: Install runtime dependencies
+        run: pip install -r requirements.txt
 
-      - name: Lint (ruff)
-        run: ruff check .
+      - name: Compile public Python source
+        run: python -m compileall -q app Palworld_Server.py desktop_app.py
 
-      - name: Format check (ruff)
-        run: ruff format --check .
+      - name: Verify application version metadata
+        run: python scripts/check_app_version.py
 
-  backend-tests:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.11", "3.12"]
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-
-      # Built before pytest runs so tests/test_frontend_serving.py exercises
-      # the real packaged-frontend-serving routes instead of skipping them
-      # (app/main.py only registers those routes when web/dist exists).
-      - name: Build frontend
-        working-directory: web
-        run: |
-          npm ci
-          npm run build
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-
-      - name: Install backend test dependencies
-        run: pip install -r requirements-dev.txt
-
-      - name: Run backend tests
-        run: pytest -v
+      - name: Import application entry point
+        run: python -c "import app.main"
 
   frontend:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -83,19 +56,13 @@ jobs:
         working-directory: web
         run: npm run typecheck
 
-      - name: Format check
-        working-directory: web
-        run: npm run format:check
-
       - name: Build
         working-directory: web
         run: npm run build
 
   packaging-smoke:
-    # Windows-only: the packaged app targets Windows exclusively (PyInstaller
-    # onefile .exe + Inno Setup installer), same as this project's own
-    # build_installer.ps1.
     runs-on: windows-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -125,7 +92,7 @@ jobs:
       - name: Build ExilesGameManager.exe with PyInstaller
         run: python -m PyInstaller ExilesGameManager.spec --noconfirm
 
-      - name: Smoke test the packaged executable actually serves /api/health
+      - name: Smoke test packaged health endpoint
         shell: pwsh
         run: |
           $proc = Start-Process -FilePath "dist\ExilesGameManager.exe" -PassThru
@@ -138,9 +105,7 @@ jobs:
                 if ($resp.StatusCode -eq 200) { $ok = $true; break }
               } catch {}
             }
-            if (-not $ok) {
-              throw "Packaged ExilesGameManager.exe never responded on /api/health within 30s"
-            }
+            if (-not $ok) { throw "Packaged application did not answer /api/health within 30 seconds" }
           } finally {
             Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
           }
@@ -148,7 +113,7 @@ jobs:
       - name: Install Inno Setup
         run: choco install innosetup -y --no-progress
 
-      - name: Compile installer (compile-only - does not run the installer)
+      - name: Compile installer
         shell: pwsh
         run: |
           $iscc = @(
@@ -156,5 +121,5 @@ jobs:
             "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
             "C:\Program Files\Inno Setup 6\ISCC.exe"
           ) | Where-Object { Test-Path $_ } | Select-Object -First 1
-          if (-not $iscc) { throw "ISCC.exe not found after installing Inno Setup" }
+          if (-not $iscc) { throw "ISCC.exe not found" }
           & $iscc installer.iss

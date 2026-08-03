@@ -5,7 +5,6 @@
 - Windows 10 or Windows 11, 64-bit
 - Administrator permission for installation and Windows Firewall changes
 - Internet access for SteamCMD, dedicated-server downloads, updates and optional integrations
-- SteamCMD will be downloaded automatically when required.
 
 Python, Node.js and npm are not required on tester systems when the Setup executable is used.
 
