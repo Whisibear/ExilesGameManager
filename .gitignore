@@ -1,0 +1,9 @@
+EGM-Releases/
+release-assets/
+GITHUB_UPLOAD_CHECKLIST.md
+FILE_MANIFEST.tsv
+RELEASE_NOTES.md
+*.exe
+*.zip
+*.sha256
+*.sha256.txt
