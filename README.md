@@ -23,15 +23,31 @@ Exiles Game Manager (EGM) is a Windows server-management platform with a modern 
 
 ![Dashboard](images/EGM-Dashboard.png)
 
-![Server Control](images/EGM-Server Control.png)
+![Server Control](images/EGM-Server-Control.png)
 
-![Steam Workshop and Nexus Mods](images/EGM-Steam Workshop & Nexus Mod.png)
+![Steam Workshop and Nexus Mods](images/EGM-Steam-Workshop-Nexus-Mod.png)
 
-![Task Queue](images/EGM-Task Queue.png)
+![Task Queue](images/EGM-Task-Queue.png)
 
-![Performance Monitor](images/EGM-Performance Monitor.png)
+![Performance Monitor](images/EGM-Performance-Monitor.png)
 
-Additional screenshots are available in the [`images`](images) directory.
+![World Settings](images/EGM-WorldSettings.png)
+
+![Firewall Management](images/EGM-Firewall-Management.png)
+
+![Launcher Options](images/EGM-Launcher-Options.png)
+
+![Activity Center](images/EGM-Activity-Center.png)
+
+![Mod Wishlist](images/EGM-Mod-Wishlist.png)
+
+![Super Admin](images/EGM-SuperAdmin.png)
+
+![Settings](images/EGM-Settings.png)
+
+![Settings 2](images/EGM-Settings-2.png)
+
+![Settings 3](images/EGM-Settings-3.png)
 
 ## Installation
 
