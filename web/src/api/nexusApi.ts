@@ -1,19 +1,19 @@
 import { api } from "./httpClient";
-import type { NexusAccount, NexusModList, NexusModPage, NexusSsoStart, NexusSsoStatus } from "@/types/models";
+import type { NexusAccount, NexusModList, NexusModPage, NexusOAuthStart, NexusOAuthStatus } from "@/types/models";
 
 // GET /api/integrations/nexus/account
 export async function getAccount(): Promise<NexusAccount> {
   return api.get<NexusAccount>("/api/integrations/nexus/account");
 }
 
-// POST /api/integrations/nexus/sso/start
-export async function startSso(): Promise<NexusSsoStart> {
-  return api.post<NexusSsoStart>("/api/integrations/nexus/sso/start");
+// POST /api/integrations/nexus/oauth/start
+export async function startOAuth(): Promise<NexusOAuthStart> {
+  return api.post<NexusOAuthStart>("/api/integrations/nexus/oauth/start");
 }
 
-// GET /api/integrations/nexus/sso/status/{requestId}
-export async function getSsoStatus(requestId: string): Promise<NexusSsoStatus> {
-  return api.get<NexusSsoStatus>(`/api/integrations/nexus/sso/status/${requestId}`);
+// GET /api/integrations/nexus/oauth/status/{requestId}
+export async function getOAuthStatus(requestId: string): Promise<NexusOAuthStatus> {
+  return api.get<NexusOAuthStatus>(`/api/integrations/nexus/oauth/status/${requestId}`);
 }
 
 // POST /api/integrations/nexus/disconnect

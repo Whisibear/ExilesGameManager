@@ -1389,7 +1389,7 @@
       "idLabel": "ID {{id}}",
       "removeSavedKey": "Gespeicherten Schlüssel entfernen",
       "worksWithoutKey": "Durchsuchen und verifizierter Datei-Upload funktionieren ohne Nexus-API-Schlüssel.",
-      "apiKeyPlaceholder": "Nexus-Mods-API-Schlüssel für Direktinstallationen",
+      "apiKeyPlaceholder": "Nexus-Mods-OAuth-Verbindung für Direktinstallationen",
       "checking": "Wird geprüft...",
       "saveKey": "Schlüssel speichern"
     },
@@ -1691,6 +1691,24 @@
   "updates": {
     "available": "EGM {{version}} verfügbar",
     "installing": "Update wird installiert…",
-    "confirmInstall": "EGM {{version}} jetzt installieren? EGM wird automatisch beendet."
+    "confirmInstall": "EGM {{version}} jetzt installieren? EGM wird automatisch beendet.",
+    "panelTitle": "Exiles Game Manager Update",
+    "currentVersion": "Installierte Version",
+    "latestVersion": "Neueste Version",
+    "updateReady": "EGM {{version}} kann jetzt von GitHub installiert werden.",
+    "checking": "GitHub-Releases werden geprüft…",
+    "upToDate": "Diese Installation ist auf dem neuesten Stand.",
+    "checkNow": "Jetzt prüfen",
+    "installNow": "{{version}} installieren",
+    "openRelease": "GitHub-Release öffnen",
+    "panelHint": "EGM lädt den Release-Installer von GitHub herunter, prüft die veröffentlichte SHA-256-Checksumme, beendet sich und startet den Installer im Update-Modus. Einstellungen, OAuth-Daten, Server und Backups bleiben erhalten.",
+    "headerAvailable": "Neues Update verfügbar",
+    "dialogEyebrow": "Exiles Game Manager Update",
+    "dialogTitle": "{{version}} installieren?",
+    "automaticFlow": "EGM lädt den geprüften Installer herunter, beendet alle EGM-Prozesse, aktualisiert die vorhandene Installation und startet EGM anschließend automatisch neu. Einstellungen, OAuth-Daten, Server und Backups bleiben unverändert.",
+    "releaseNotes": "Release-Seite",
+    "checkAgain": "Erneut prüfen",
+    "preparingInstall": "Update wird vorbereitet…",
+    "installAndRestart": "Aktualisieren und neu starten"
   }
 }

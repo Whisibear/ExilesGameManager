@@ -1,5 +1,6 @@
 #define MyAppName "Exiles Game Manager"
-#define MyAppVersion "0.8.0"
+#define MyAppVersion "0.8.1-beta.1"
+#define MyWindowsVersion "0.8.1.1"
 #define MyAppPublisher "Whisibear EGM"
 #define MyAppURL "https://github.com/Whisibear/ExilesGameManager"
 #define MyAppExeName "ExilesGameManager.exe"
@@ -8,16 +9,16 @@
 AppId={{C9B75D37-C6F7-4487-A49C-FBE76815AF7F}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
-AppVerName={#MyAppName} {#MyAppVersion} Beta
+AppVerName={#MyAppName} {#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}/issues
 AppUpdatesURL={#MyAppURL}/releases
-VersionInfoVersion={#MyAppVersion}.0
+VersionInfoVersion={#MyWindowsVersion}
 VersionInfoCompany={#MyAppPublisher}
 VersionInfoDescription={#MyAppName} Setup
 VersionInfoProductName={#MyAppName}
-VersionInfoProductVersion=0.8.0.0
+VersionInfoProductVersion={#MyWindowsVersion}
 VersionInfoCopyright=Copyright (c) 2026 Kvitekvist; Copyright (c) 2026 Whisibear EGM
 DefaultDirName={autopf}\Exiles Game Manager
 DefaultGroupName={#MyAppName}
@@ -55,28 +56,45 @@ english.InstallingRuntime=Installing Microsoft Visual C++ Runtime and SteamCMD..
 german.InstallingRuntime=Microsoft Visual C++ Runtime und SteamCMD werden installiert...
 english.LaunchProgram=Launch Exiles Game Manager
 german.LaunchProgram=Exiles Game Manager starten
+english.RemoveUserData=Remove all EGM application data stored under LocalAppData, including configuration, OAuth tokens, cache, logs and downloads?%n%nChoose No to preserve these settings for a later reinstall.
+german.RemoveUserData=Alle EGM-Anwendungsdaten unter LocalAppData löschen, einschließlich Konfiguration, OAuth-Tokens, Cache, Logs und Downloads?%n%nWählen Sie Nein, um diese Einstellungen für eine spätere Neuinstallation zu behalten.
 english.RemoveRuntimeData=Remove all EGM runtime data, server registrations, downloaded tools, logs and server files stored under ProgramData?%n%nChoose No to preserve servers and runtime data. Login accounts are removed in either case.
 german.RemoveRuntimeData=Alle EGM-Laufzeitdaten, Serverregistrierungen, heruntergeladenen Werkzeuge, Logs und unter ProgramData gespeicherten Serverdateien löschen?%n%nWählen Sie Nein, um Server und Laufzeitdaten zu behalten. Benutzerkonten werden in jedem Fall entfernt.
+english.MaintenanceTitle=Maintain Exiles Game Manager
+german.MaintenanceTitle=Exiles Game Manager verwalten
+english.MaintenanceDescription=An existing installation was detected. Choose the action to perform.
+german.MaintenanceDescription=Eine vorhandene Installation wurde erkannt. Wählen Sie die gewünschte Aktion.
+english.MaintenanceUpdate=Update EGM to version {#MyAppVersion} and preserve all settings, OAuth data, servers and backups.
+german.MaintenanceUpdate=EGM auf Version {#MyAppVersion} aktualisieren und alle Einstellungen, OAuth-Daten, Server und Backups behalten.
+english.MaintenanceRepair=Repair the existing installation by reinstalling all program files. User and server data remain unchanged.
+german.MaintenanceRepair=Die vorhandene Installation reparieren, indem alle Programmdateien neu installiert werden. Benutzer- und Serverdaten bleiben unverändert.
+english.MaintenanceUninstall=Uninstall Exiles Game Manager. The uninstaller will ask separately whether application and server data should also be removed.
+german.MaintenanceUninstall=Exiles Game Manager deinstallieren. Der Uninstaller fragt getrennt, ob Anwendungs- und Serverdaten ebenfalls entfernt werden sollen.
+english.MaintenanceInstalledVersion=Installed version
+german.MaintenanceInstalledVersion=Installierte Version
+english.MaintenanceNewVersion=Setup version
+german.MaintenanceNewVersion=Setup-Version
+english.MaintenanceUninstallFailed=The existing uninstaller could not be started.
+german.MaintenanceUninstallFailed=Das vorhandene Deinstallationsprogramm konnte nicht gestartet werden.
+english.MaintenanceUninstallMissing=The existing installation was detected, but its uninstaller could not be found.
+german.MaintenanceUninstallMissing=Die vorhandene Installation wurde erkannt, aber das Deinstallationsprogramm wurde nicht gefunden.
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Dirs]
+Name: "{localappdata}\ExilesGameManager"; Permissions: users-modify
+Name: "{localappdata}\ExilesGameManager\config"; Permissions: users-modify
+Name: "{localappdata}\ExilesGameManager\cache"; Permissions: users-modify
+Name: "{localappdata}\ExilesGameManager\logs"; Permissions: users-modify
+Name: "{localappdata}\ExilesGameManager\oauth"; Permissions: users-modify
+Name: "{localappdata}\ExilesGameManager\downloads"; Permissions: users-modify
+Name: "{localappdata}\ExilesGameManager\temp"; Permissions: users-modify
+Name: "{localappdata}\ExilesGameManager\backups"; Permissions: users-modify
 Name: "{commonappdata}\ExilesGameManager"; Permissions: users-modify
 Name: "{commonappdata}\ExilesGameManager\data"; Permissions: users-modify
 Name: "{commonappdata}\ExilesGameManager\Servers"; Permissions: users-modify
 Name: "{commonappdata}\ExilesGameManager\data\steamcmd"; Permissions: users-modify
-Name: "{app}\Logs"; Permissions: users-modify
-Name: "{app}\Logs\backend"; Permissions: users-modify
-Name: "{app}\Logs\frontend"; Permissions: users-modify
-Name: "{app}\Logs\audit"; Permissions: users-modify
-Name: "{app}\Logs\application"; Permissions: users-modify
-Name: "{app}\Logs\activity"; Permissions: users-modify
-Name: "{app}\Logs\taskqueue"; Permissions: users-modify
-Name: "{app}\Logs\installer"; Permissions: users-modify
-Name: "{app}\Logs\updater"; Permissions: users-modify
-Name: "{app}\Logs\steamcmd"; Permissions: users-modify
-Name: "{app}\Logs\diagnostics"; Permissions: users-modify
 
 [Files]
 Source: "dist\ExilesGameManager.exe"; DestDir: "{app}"; Flags: ignoreversion
@@ -91,28 +109,161 @@ Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Tasks: desktopicon
 
 [Run]
-Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoLogo -NoProfile -ExecutionPolicy Bypass -File ""{tmp}\Install_Prerequisites.ps1"" -DataRoot ""{commonappdata}\ExilesGameManager\data"" -LogRoot ""{app}\Logs\installer"""; StatusMsg: "{cm:InstallingRuntime}"; Flags: runhidden waituntilterminated
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoLogo -NoProfile -ExecutionPolicy Bypass -File ""{tmp}\Install_Prerequisites.ps1"" -DataRoot ""{commonappdata}\ExilesGameManager\data"" -LogRoot ""{localappdata}\ExilesGameManager\logs\installer"""; StatusMsg: "{cm:InstallingRuntime}"; Flags: runhidden waituntilterminated
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram}"; Flags: nowait postinstall skipifsilent
 
 [Code]
-procedure RemoveAuthenticationData();
+const
+  EGMUninstallKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{C9B75D37-C6F7-4487-A49C-FBE76815AF7F}_is1';
+
 var
-  DataRoot: String;
+  MaintenancePage: TInputOptionWizardPage;
+  EGMRestartExecutable: String;
+  EGMRestartLaunched: Boolean;
+  ExistingInstallDetected: Boolean;
+  ExistingVersion: String;
+  ExistingUninstaller: String;
+
+function GetCommandLineValue(const Name: String): String;
+var
+  I: Integer;
+  Prefix: String;
+  Value: String;
 begin
-  DataRoot := ExpandConstant('{commonappdata}\ExilesGameManager\data');
-  DeleteFile(DataRoot + '\users.json');
-  DeleteFile(DataRoot + '\users.json.corrupt');
-  DeleteFile(DataRoot + '\invites.json');
-  DeleteFile(DataRoot + '\invites.json.corrupt');
+  Result := '';
+  Prefix := '/' + Uppercase(Name) + '=';
+  for I := 1 to ParamCount do
+  begin
+    Value := ParamStr(I);
+    if Pos(Prefix, Uppercase(Value)) = 1 then
+    begin
+      Result := Copy(Value, Length(Prefix) + 1, MaxInt);
+      Exit;
+    end;
+  end;
+end;
+
+function HasCommandLineSwitch(const SwitchName: String): Boolean;
+var
+  I: Integer;
+  Value: String;
+begin
+  Result := False;
+  for I := 1 to ParamCount do
+  begin
+    Value := Uppercase(ParamStr(I));
+    if (Value = '/' + Uppercase(SwitchName)) or
+       (Value = '-' + Uppercase(SwitchName)) then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
+end;
+
+function ReadExistingInstallation(): Boolean;
+begin
+  ExistingVersion := '';
+  ExistingUninstaller := '';
+
+  Result :=
+    RegQueryStringValue(HKLM64, EGMUninstallKey, 'DisplayVersion', ExistingVersion) or
+    RegQueryStringValue(HKLM, EGMUninstallKey, 'DisplayVersion', ExistingVersion);
+
+  if Result then
+  begin
+    if not RegQueryStringValue(HKLM64, EGMUninstallKey, 'UninstallString', ExistingUninstaller) then
+      RegQueryStringValue(HKLM, EGMUninstallKey, 'UninstallString', ExistingUninstaller);
+  end;
+end;
+
+procedure InitializeWizard();
+var
+  VersionSummary: String;
+begin
+  EGMRestartExecutable := GetCommandLineValue('EGMRESTART');
+  EGMRestartLaunched := False;
+  ExistingInstallDetected := ReadExistingInstallation();
+
+  if ExistingInstallDetected and
+     (not WizardSilent()) and
+     (not HasCommandLineSwitch('UPDATE')) and
+     (not HasCommandLineSwitch('REPAIR')) then
+  begin
+    VersionSummary :=
+      ExpandConstant('{cm:MaintenanceInstalledVersion}') + ': ' + ExistingVersion + #13#10 +
+      ExpandConstant('{cm:MaintenanceNewVersion}') + ': {#MyAppVersion}';
+
+    MaintenancePage := CreateInputOptionPage(
+      wpWelcome,
+      ExpandConstant('{cm:MaintenanceTitle}'),
+      ExpandConstant('{cm:MaintenanceDescription}'),
+      VersionSummary,
+      True,
+      False
+    );
+    MaintenancePage.Add(ExpandConstant('{cm:MaintenanceUpdate}'));
+    MaintenancePage.Add(ExpandConstant('{cm:MaintenanceRepair}'));
+    MaintenancePage.Add(ExpandConstant('{cm:MaintenanceUninstall}'));
+    MaintenancePage.SelectedValueIndex := 0;
+  end;
+end;
+
+function NextButtonClick(CurPageID: Integer): Boolean;
+var
+  ResultCode: Integer;
+  UninstallerPath: String;
+begin
+  Result := True;
+
+  if ExistingInstallDetected and
+     Assigned(MaintenancePage) and
+     (CurPageID = MaintenancePage.ID) and
+     (MaintenancePage.SelectedValueIndex = 2) then
+  begin
+    UninstallerPath := RemoveQuotes(ExistingUninstaller);
+
+    if (UninstallerPath = '') or (not FileExists(UninstallerPath)) then
+    begin
+      MsgBox(ExpandConstant('{cm:MaintenanceUninstallMissing}'), mbError, MB_OK);
+      Result := False;
+      Exit;
+    end;
+
+    if not Exec(
+      UninstallerPath,
+      '',
+      ExtractFileDir(UninstallerPath),
+      SW_SHOW,
+      ewNoWait,
+      ResultCode
+    ) then
+    begin
+      MsgBox(ExpandConstant('{cm:MaintenanceUninstallFailed}'), mbError, MB_OK);
+      Result := False;
+      Exit;
+    end;
+
+    WizardForm.Close;
+    Result := False;
+  end;
 end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
+  RemoveUserData: Integer;
   RemoveEverything: Integer;
 begin
   if CurUninstallStep = usUninstall then
   begin
-    RemoveAuthenticationData();
+    RemoveUserData := MsgBox(
+      ExpandConstant('{cm:RemoveUserData}'),
+      mbConfirmation,
+      MB_YESNO or MB_DEFBUTTON2
+    );
+    if RemoveUserData = IDYES then
+      DelTree(ExpandConstant('{localappdata}\ExilesGameManager'), True, True, True);
+
     RemoveEverything := MsgBox(
       ExpandConstant('{cm:RemoveRuntimeData}'),
       mbConfirmation,
@@ -123,21 +274,64 @@ begin
   end;
 end;
 
+procedure StopEGMProcesses();
+var
+  ResultCode: Integer;
+begin
+  Exec(
+    ExpandConstant('{sys}\taskkill.exe'),
+    '/F /T /IM ExilesGameManager.exe',
+    '',
+    SW_HIDE,
+    ewWaitUntilTerminated,
+    ResultCode
+  );
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   LogFile: String;
+  OperationName: String;
+  ResultCode: Integer;
 begin
   if CurStep = ssInstall then
+  begin
     WizardForm.StatusLabel.Caption := ExpandConstant('{cm:PreparingComponents}');
+    if HasCommandLineSwitch('UPDATE') then
+      StopEGMProcesses();
+  end;
 
   if CurStep = ssPostInstall then
   begin
-    LogFile := ExpandConstant('{app}\Logs\installer\installation.log');
+    if HasCommandLineSwitch('REPAIR') then
+      OperationName := 'repair'
+    else if ExistingInstallDetected or HasCommandLineSwitch('UPDATE') then
+      OperationName := 'update'
+    else
+      OperationName := 'installation';
+
+    LogFile := ExpandConstant('{localappdata}\ExilesGameManager\logs\installer\installation.log');
+    ForceDirectories(ExtractFileDir(LogFile));
     SaveStringToFile(
       LogFile,
       GetDateTimeString('yyyy-mm-dd hh:nn:ss', '-', ':') +
-      ' Exiles Game Manager ' + '{#MyAppVersion}' + ' installation completed.' + #13#10,
+      ' Exiles Game Manager ' + '{#MyAppVersion}' + ' ' + OperationName + ' completed.' + #13#10,
       True
     );
+
+    if (EGMRestartExecutable <> '') and
+       (not EGMRestartLaunched) and
+       FileExists(EGMRestartExecutable) then
+    begin
+      EGMRestartLaunched := True;
+      Exec(
+        EGMRestartExecutable,
+        '',
+        ExtractFileDir(EGMRestartExecutable),
+        SW_SHOW,
+        ewNoWait,
+        ResultCode
+      );
+    end;
   end;
 end;

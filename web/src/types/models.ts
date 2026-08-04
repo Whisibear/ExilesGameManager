@@ -304,6 +304,8 @@ export interface AppUpdateStatus {
   installerAvailable?: boolean;
   installSupported?: boolean;
   installing?: boolean;
+  channel?: string;
+  repository?: string;
 }
 
 export interface NexusAccount {
@@ -314,12 +316,12 @@ export interface NexusAccount {
   avatarInitial?: string;
 }
 
-export interface NexusSsoStart {
+export interface NexusOAuthStart {
   requestId: string;
   authorizeUrl: string;
 }
 
-export type NexusSsoStatus =
+export type NexusOAuthStatus =
   { status: "pending" } | { status: "connected"; account: NexusAccount } | { status: "error"; message: string };
 
 export type SteamWorkshopList = "trending" | "latest_added" | "latest_updated";

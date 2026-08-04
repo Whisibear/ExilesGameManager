@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.auth_deps import get_current_user, require_super_admin
-from app.paths import resource_dir
+from app.paths import ensure_local_app_layout, resource_dir
 from app.routes import (
     activity_center,
     app_update,
@@ -20,6 +20,7 @@ from app.routes import (
     instances,
     logs,
     nexus,
+    nexus_oauth_callback,
     mods,
     network,
     notifications,
@@ -65,7 +66,7 @@ logging.getLogger("uvicorn.access").addFilter(_PollingNoiseFilter())
 
 instance_store.migrate_legacy_single_instance()
 
-app = FastAPI(title="Exiles Game Manager Backend", version="0.8.0")
+app = FastAPI(title="Exiles Game Manager Backend", version="0.8.1-beta.1")
 
 
 @app.middleware("http")
@@ -96,6 +97,7 @@ async def audit_http_requests(request, call_next):
 
 @app.on_event("startup")
 async def _start_scheduler() -> None:
+    ensure_local_app_layout()
     app_event_log.log("info", "Backend", "ExilesGameManager backend starting.")
     await task_queue.start()
     asyncio.create_task(scheduler.run_forever())
@@ -146,6 +148,7 @@ app.include_router(backup_center.router, prefix="/api/backup-center", tags=["bac
 app.include_router(performance.router, prefix="/api/performance", tags=["performance"], dependencies=_authed)
 app.include_router(players.router, prefix="/api/players", tags=["players"], dependencies=_authed)
 app.include_router(logs.router, prefix="/api/logs", tags=["logs"], dependencies=_authed)
+app.include_router(nexus_oauth_callback.router, prefix="/api/nexus/oauth", tags=["nexus-oauth-callback"])
 app.include_router(nexus.router, prefix="/api/integrations/nexus", tags=["nexus"], dependencies=_authed)
 app.include_router(steam_workshop.router, prefix="/api/integrations/steam-workshop", tags=["steam-workshop"], dependencies=_authed)
 app.include_router(university.router, prefix="/api/university", tags=["university"], dependencies=_authed)

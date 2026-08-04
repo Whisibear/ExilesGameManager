@@ -3,62 +3,35 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.auth_deps import require_super_admin
-from app.services import nexus_client, nexus_session, nexus_sso
+from app.services import nexus_client, nexus_oauth, nexus_session
 from app.services.nexus_client import NexusApiError
 
 router = APIRouter()
 
 
-# account_view() never exposes the raw API key. It remains public to authenticated
-# admins so older installs can show/remove legacy Nexus connection state.
+# account_view() exposes only non-sensitive Nexus account metadata. OAuth tokens
+# remain encrypted in the local secure store and are never returned to the frontend.
 @router.get("/account")
 async def get_account() -> dict[str, Any]:
     return nexus_session.account_view()
 
 
-@router.post("/sso/start", dependencies=[Depends(require_super_admin)])
-async def start_sso() -> dict[str, Any]:
-    return nexus_sso.start()
+@router.post("/oauth/start", dependencies=[Depends(require_super_admin)])
+async def start_oauth() -> dict[str, Any]:
+    return nexus_oauth.start()
 
 
-@router.get("/sso/status/{request_id}", dependencies=[Depends(require_super_admin)])
-async def get_sso_status(request_id: str) -> dict[str, Any]:
-    session = nexus_sso.get_status(request_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="This Nexus Mods connection request has expired. Try again.")
-
-    if session["status"] == "pending":
-        return {"status": "pending"}
-
-    if session["status"] == "error":
-        nexus_sso.finish(request_id)
-        return {"status": "error", "message": session["error"]}
-
-    # session["status"] == "authorized": finish the same validate-and-save
-    # step the old pasted-key /connect endpoint used to do.
-    try:
-        data = await nexus_client.validate_key(session["apiKey"])
-    except NexusApiError as e:
-        nexus_sso.finish(request_id)
-        return {"status": "error", "message": e.message}
-
-    nexus_session.save_record(
-        {
-            "connected": True,
-            "via": "sso",
-            "apiKey": session["apiKey"],
-            "username": data.get("name"),
-            "userId": data.get("user_id"),
-            "isPremium": bool(data.get("is_premium")),
-        }
-    )
-    nexus_sso.finish(request_id)
-    return {"status": "connected", "account": nexus_session.account_view()}
+@router.get("/oauth/status/{request_id}", dependencies=[Depends(require_super_admin)])
+async def get_oauth_status(request_id: str) -> dict[str, Any]:
+    status = nexus_oauth.get_status(request_id)
+    if not status:
+        raise HTTPException(status_code=404, detail="This Nexus Mods authorization request expired. Try again.")
+    return status
 
 
 @router.post("/disconnect", dependencies=[Depends(require_super_admin)])
 async def disconnect() -> dict[str, Any]:
-    nexus_session.save_record({"connected": False})
+    nexus_session.disconnect()
     return {"connected": False}
 
 

@@ -1389,7 +1389,7 @@
       "idLabel": "ID {{id}}",
       "removeSavedKey": "Eliminar clave guardada",
       "worksWithoutKey": "La exploración y la carga de archivos verificados funcionan sin una clave API de Nexus.",
-      "apiKeyPlaceholder": "Clave API de Nexus Mods para instalaciones directas",
+      "apiKeyPlaceholder": "Conexión OAuth de Nexus Mods para instalaciones directas",
       "checking": "Comprobando...",
       "saveKey": "Guardar clave"
     },

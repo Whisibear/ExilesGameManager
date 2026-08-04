@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.8.1-beta.1 - One-click automatic updates
+
+- Added a prominent update notification next to the notification bell.
+- Added an update confirmation dialog with installed and available version information.
+- EGM now downloads the verified GitHub release installer, closes all EGM processes, updates the existing installation and starts EGM again automatically.
+- Settings, Nexus OAuth data, managed servers and backups remain unchanged during updates.
+- Added automatic GitHub update checks every five minutes.
+
+## 0.8.0 - Installer maintenance mode and in-panel application updates
+
+- Added an installer maintenance screen for existing EGM installations with Update, Repair and Uninstall actions.
+- Update and Repair preserve application settings, Nexus OAuth data, managed servers and backups.
+- Added a Super Admin update panel that checks GitHub releases and installs verified EGM Setup assets directly from the dashboard.
+- Automatic updates verify the published SHA-256 checksum before closing EGM and launching the installer in non-interactive update mode.
+
+## 0.8.0 - Nexus Mods OAuth callback fix
+
+- Fixed Nexus Mods login failing after successful browser authorization.
+- EGM now reads the connected account from the OAuth access token returned by Nexus Mods instead of sending that token to the legacy API-key validation endpoint.
+- Added clearer OAuth failure details while ensuring access and refresh tokens are never written to logs.
+
+## 0.8.0 - Registered Nexus Mods login and application-data controls
+
+- Added registered Nexus Mods OAuth login using Authorization Code with PKCE.
+- Added encrypted local storage for Nexus access and refresh tokens on Windows.
+- Added connect, connection-status, token-refresh and disconnect workflows in Super Admin.
+- Added a dedicated LocalAppData structure for application settings, OAuth data, cache, logs, downloads, temporary files and backups.
+- Added separate uninstall choices for per-user application data and managed server/runtime data.
+
 ## 0.8.0 - Steam Workshop Browser & Wishlist
 
 - Added a Nexus-style Steam Workshop browser with trending, latest-added, latest-updated and search views.

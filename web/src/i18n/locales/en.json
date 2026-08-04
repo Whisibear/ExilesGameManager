@@ -478,6 +478,24 @@
   "updates": {
     "available": "EGM {{version}} available",
     "installing": "Installing update…",
-    "confirmInstall": "Install EGM {{version}} now? EGM will close automatically."
+    "confirmInstall": "Install EGM {{version}} now? EGM will close automatically.",
+    "panelTitle": "Exiles Game Manager Update",
+    "currentVersion": "Installed version",
+    "latestVersion": "Latest release",
+    "updateReady": "EGM {{version}} is ready to install from GitHub.",
+    "checking": "Checking GitHub releases…",
+    "upToDate": "This installation is up to date.",
+    "checkNow": "Check now",
+    "installNow": "Install {{version}}",
+    "openRelease": "Open GitHub release",
+    "panelHint": "EGM downloads the release installer from GitHub, verifies the published SHA-256 checksum, closes itself and starts the installer in update mode. Settings, OAuth data, servers and backups are preserved.",
+    "headerAvailable": "New update available",
+    "dialogEyebrow": "Exiles Game Manager Update",
+    "dialogTitle": "Install {{version}}?",
+    "automaticFlow": "EGM downloads the verified installer, closes all EGM processes, updates the existing installation and starts EGM again automatically. Settings, OAuth data, servers and backups remain unchanged.",
+    "releaseNotes": "Release page",
+    "checkAgain": "Check again",
+    "preparingInstall": "Preparing update…",
+    "installAndRestart": "Update and restart"
   }
 }

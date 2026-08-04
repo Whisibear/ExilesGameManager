@@ -2,7 +2,7 @@
 
 A desktop admin panel for running your own Palworld Dedicated Server(s): deploy a fresh server in a few clicks, manage mods and UE4SS without touching config files, and let friends log in with their own account to help run the server. No command line required.
 
-[img]https://raw.githubusercontent.com/Kvitekvist/ExilesGameManager/refs/heads/main/images/home.png[/img]
+[img]https://raw.githubusercontent.com/Whisibear/ExilesGameManager/main/images/EGM-Dashboard.png[/img]
 
 [size=5][b]What This Is[/b][/size]
 
@@ -27,7 +27,7 @@ It's not a mod for the game itself. It's a standalone Windows application that m
 [size=4][b]Mods[/b][/size]
 [list]
 [*]Browse Palworld mods from Nexus Mods without entering a personal API key.[/*]
-[*]Install directly from Nexus when the super admin connects a Nexus API key with Premium download access.[/*]
+[*]Install directly from Nexus after the super admin signs in through the registered EGM OAuth application; Premium download access remains required.[/*]
 [*]Let regular admins add browsed mods to a per-server wishlist; only the super admin can approve a request and initiate the download.[/*]
 [*]Or download files on Nexus, then install them through the tool after it verifies the exact file hash against Nexus's catalog.[/*]
 [*]Enable, disable, reorder, and remove mods without digging through folders.[/*]
@@ -79,7 +79,7 @@ Choose where to install the app.
 
 [img]https://raw.githubusercontent.com/Kvitekvist/ExilesGameManager/refs/heads/main/images/getting-started-01-installer-location.png[/img]
 
-[quote][b]Note:[/b] Running the installer again later updates the app. It keeps your server list and admin account. The installer also offers a straight Uninstall option if you ever want to remove ExilesGameManager - it keeps your Palworld server files, mods, and backups, and only resets the admin account and app settings.[/quote]
+[quote][b]Note:[/b] Running the installer again later updates the app. It keeps your server list and admin account. The installer also offers a straight Uninstall option if you ever want to remove ExilesGameManager - the uninstaller asks separately whether per-user EGM data and managed server data should be preserved or removed.[/quote]
 
 [size=4][b]2. Make Your Admin Account[/b][/size]
 
@@ -158,7 +158,7 @@ Go to Mods to install UE4SS and manage mods.
 
 [img]https://raw.githubusercontent.com/Kvitekvist/ExilesGameManager/refs/heads/main/images/getting-started-12-mods.png[/img]
 
-For Nexus Mods: you can browse mods without an API key, regular admins can add mods to a server wishlist, and only the super admin can approve a request or start a direct install using the saved Nexus Premium API key. You can also download a mod yourself and install it from file in Super Admin. Restart the server after changing mods.
+For Nexus Mods: you can browse mods without an API key, regular admins can add mods to a server wishlist, and only the super admin can approve a request or start a direct install using the registered Nexus OAuth session with Premium download access. You can also download a mod yourself and install it from file in Super Admin. Restart the server after changing mods.
 
 [size=4][b]9. Invite Friends To Help[/b][/size]
 
@@ -237,7 +237,7 @@ The installer is not code-signed yet, so Windows SmartScreen may warn on first r
 [*]Windows 10 or 11, 64-bit.[/*]
 [*]A Steam account is not required: the dedicated server downloads anonymously via SteamCMD.[/*]
 [*]A Nexus Mods account is only needed when you download files from Nexus itself. Browsing inside the tool does not require an API key.[/*]
-[*]Direct installs and approved wishlist requests require Nexus Premium download access through the saved super-admin API key. Regular admins cannot invoke that key themselves.[/*]
+[*]Direct installs and approved wishlist requests require Nexus Premium download access through the registered OAuth connection. Regular admins cannot use or manage the super-admin OAuth session.[/*]
 [*]If you plan to let friends connect from outside your home network: a router that supports UPnP makes this easier. Without it, you may need to forward ports manually.[/*]
 [/list]
 

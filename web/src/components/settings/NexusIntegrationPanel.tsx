@@ -34,13 +34,13 @@ export function NexusIntegrationPanel() {
   async function handleConnect() {
     setConnecting(true);
     try {
-      const { requestId, authorizeUrl } = await nexusApi.startSso();
+      const { requestId, authorizeUrl } = await nexusApi.startOAuth();
       window.open(authorizeUrl, "_blank", "noopener,noreferrer");
 
       const deadline = Date.now() + POLL_TIMEOUT_MS;
       while (Date.now() < deadline) {
         await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
-        const result = await nexusApi.getSsoStatus(requestId);
+        const result = await nexusApi.getOAuthStatus(requestId);
         if (result.status === "connected") {
           setAccount(result.account);
           notifications.success({
@@ -83,7 +83,7 @@ export function NexusIntegrationPanel() {
       <p className="mb-4 text-xs leading-relaxed text-parchment-300/50">
         {t("superAdmin.nexus.description1", {
           defaultValue:
-            "Browsing and verified manual installs use Nexus's public metadata and need no connection at all. Nexus Login below only unlocks Direct Install (and requires Nexus Premium download access).",
+            "Browsing and verified manual installs use Nexus's public metadata and need no connection at all. Nexus Login uses the registered EGM OAuth application with PKCE. Direct Install remains subject to Nexus Premium download access.",
         })}
       </p>
 

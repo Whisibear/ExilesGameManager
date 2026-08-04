@@ -1,7 +1,7 @@
 
 """GitHub release discovery and safe Windows installer hand-off."""
 from __future__ import annotations
-import asyncio, hashlib, logging, os, re, subprocess, threading, time
+import asyncio, hashlib, json, logging, os, re, subprocess, sys, threading, time
 from pathlib import Path
 from typing import Any
 import httpx
@@ -13,16 +13,44 @@ _FAILURE_CACHE_SECONDS = 60
 _cache: dict[str, Any] | None = None
 _cache_expires_at = 0.0
 _lock = asyncio.Lock()
-_VERSION_RE = re.compile(r"^v?(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(?:[-+].*)?$", re.I)
+_VERSION_RE = re.compile(r"^v?(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(?:-(?P<pre>[0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$", re.I)
 _INSTALLER_RE = re.compile(r"(?:ExilesGameManager|Exiles-Game-Manager).*Setup.*\.exe$", re.I)
 _SHA_RE = re.compile(r"^[0-9a-fA-F]{64}")
 
 def _version_tuple(value: str):
-    m=_VERSION_RE.fullmatch(value.strip())
-    return tuple(int(m.group(n)) for n in ("major","minor","patch")) if m else None
+    match = _VERSION_RE.fullmatch(value.strip())
+    if not match:
+        return None
+    prerelease = match.group("pre")
+    pre_parts = []
+    if prerelease:
+        for part in prerelease.split("."):
+            pre_parts.append((0, int(part)) if part.isdigit() else (1, part.lower()))
+    return (
+        int(match.group("major")),
+        int(match.group("minor")),
+        int(match.group("patch")),
+        0 if prerelease else 1,
+        tuple(pre_parts),
+    )
 
 def _base_status(message=None):
-    return {"currentVersion":APP_VERSION,"latestVersion":None,"updateAvailable":False,"releaseUrl":None,"releaseName":None,"publishedAt":None,"available":False,"configured":bool(GITHUB_REPOSITORY and "/" in GITHUB_REPOSITORY),"message":message,"installerAvailable":False,"installSupported":bool(os.name=="nt" and is_frozen()),"installing":False}
+    return {
+        "currentVersion": APP_VERSION,
+        "latestVersion": None,
+        "updateAvailable": False,
+        "releaseUrl": None,
+        "releaseName": None,
+        "publishedAt": None,
+        "available": False,
+        "configured": bool(GITHUB_REPOSITORY and "/" in GITHUB_REPOSITORY),
+        "message": message,
+        "installerAvailable": False,
+        "installSupported": bool(os.name == "nt" and is_frozen()),
+        "installing": False,
+        "channel": APP_CHANNEL,
+        "repository": GITHUB_REPOSITORY,
+    }
 
 def _select_release(releases):
     for release in releases:
@@ -62,7 +90,7 @@ async def get_status(*,force=False):
             installer=_asset(release,_INSTALLER_RE); checksum = next((a for a in release.get("assets", []) if installer and str(a.get("name") or "").lower() in {f"{installer.get('name')}.sha256.txt".lower(), f"{installer.get('name')}.sha256".lower()}), None)
             if checksum is None:
                 checksum=_asset(release,re.compile(r"sha256.*\.txt$|\.sha256(?:\.txt)?$",re.I))
-            _cache={"currentVersion":APP_VERSION,"latestVersion":tag.lstrip("vV"),"updateAvailable":latest>current,"releaseUrl":str(release.get("html_url") or ""),"releaseName":str(release.get("name") or tag),"publishedAt":release.get("published_at"),"available":True,"configured":True,"message":None,"installerAvailable":installer is not None,"installSupported":bool(os.name=="nt" and is_frozen()),"installing":False,"installerUrl":installer.get("browser_download_url") if installer else None,"installerName":installer.get("name") if installer else None,"checksumUrl":checksum.get("browser_download_url") if checksum else None}
+            _cache={"currentVersion":APP_VERSION,"latestVersion":tag.lstrip("vV"),"updateAvailable":latest>current,"releaseUrl":str(release.get("html_url") or ""),"releaseName":str(release.get("name") or tag),"publishedAt":release.get("published_at"),"available":True,"configured":True,"message":None,"installerAvailable":installer is not None,"installSupported":bool(os.name=="nt" and is_frozen()),"installing":False,"installerUrl":installer.get("browser_download_url") if installer else None,"installerName":installer.get("name") if installer else None,"checksumUrl": checksum.get("browser_download_url") if checksum else None, "channel": APP_CHANNEL, "repository": GITHUB_REPOSITORY}
             _cache_expires_at=time.monotonic()+UPDATE_CHECK_SECONDS; _publish_update_notification(_cache)
         except (httpx.HTTPError,ValueError,TypeError) as exc:
             logger.warning("Update server is currently unavailable: %s",exc); _cache=_base_status("Update server is currently unavailable."); _cache["configured"]=True; _cache_expires_at=time.monotonic()+_FAILURE_CACHE_SECONDS
@@ -91,12 +119,47 @@ async def prepare_installer():
             if hashlib.sha256(installer.read_bytes()).hexdigest()!=match.group(0).lower(): installer.unlink(missing_ok=True); raise RuntimeError("The downloaded installer failed SHA256 verification.")
     return {"installer":str(installer),"version":status["latestVersion"]}
 
-def _launch_and_exit(installer):
-    def worker():
+def _restart_executable_path() -> Path:
+    return Path(sys.executable if is_frozen() else sys.argv[0]).resolve()
+
+
+def _restart_marker_path() -> Path:
+    return data_dir() / "updates" / "restart.json"
+
+
+def _installer_command(installer: Path) -> list[str]:
+    restart_path = _restart_executable_path()
+    return [
+        str(installer),
+        "/UPDATE",
+        "/VERYSILENT",
+        "/SUPPRESSMSGBOXES",
+        "/NORESTART",
+        "/CLOSEAPPLICATIONS",
+        "/FORCECLOSEAPPLICATIONS",
+        "/SP-",
+        f"/EGMRESTART={restart_path}",
+    ]
+
+
+def _launch_and_exit(installer: Path) -> None:
+    def worker() -> None:
         time.sleep(1.5)
-        subprocess.Popen([str(installer),"/SILENT","/SUPPRESSMSGBOXES","/NORESTART","/CLOSEAPPLICATIONS"],cwd=str(installer.parent),creationflags=getattr(subprocess,"CREATE_NEW_PROCESS_GROUP",0),close_fds=True)
-        time.sleep(1); os._exit(0)
-    threading.Thread(target=worker,name="egm-updater",daemon=True).start()
+        restart_marker = _restart_marker_path()
+        restart_marker.parent.mkdir(parents=True, exist_ok=True)
+        restart_marker.write_text(json.dumps({"installer": installer.name, "requestedAt": time.time()}), encoding="utf-8")
+        command = _installer_command(installer)
+        logger.info("Starting verified EGM update installer: %s", installer.name)
+        subprocess.Popen(
+            command,
+            cwd=str(installer.parent),
+            creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
+            close_fds=True,
+        )
+        time.sleep(1)
+        os._exit(0)
+
+    threading.Thread(target=worker, name="egm-updater", daemon=True).start()
 
 async def install_update():
     prepared=await prepare_installer(); _launch_and_exit(Path(prepared["installer"]))

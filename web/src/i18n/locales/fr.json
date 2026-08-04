@@ -1389,7 +1389,7 @@
       "idLabel": "ID {{id}}",
       "removeSavedKey": "Supprimer la clé enregistrée",
       "worksWithoutKey": "La navigation et l'envoi de fichiers vérifiés fonctionnent sans clé API Nexus.",
-      "apiKeyPlaceholder": "Clé API Nexus Mods pour les installations directes",
+      "apiKeyPlaceholder": "Connexion OAuth Nexus Mods pour les installations directes",
       "checking": "Vérification...",
       "saveKey": "Enregistrer la clé"
     },

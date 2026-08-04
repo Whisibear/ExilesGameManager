@@ -11,13 +11,13 @@ from pathlib import Path
 
 import httpx
 
-from app.paths import data_dir
+from app.paths import data_dir, program_data_root
 from app.services import activity_log
 from app.services.windows_subprocess import hidden_process_kwargs
 
 logger = logging.getLogger("egm.steamcmd")
 
-STEAMCMD_DIR = data_dir() / "steamcmd"
+STEAMCMD_DIR = program_data_root() / "data" / "steamcmd"
 STEAMCMD_DIR.mkdir(parents=True, exist_ok=True)
 _STEAMCMD_LOCK = asyncio.Lock()
 STEAMCMD_EXE = STEAMCMD_DIR / "steamcmd.exe"

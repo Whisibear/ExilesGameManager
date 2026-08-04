@@ -43,3 +43,10 @@ Release binaries are distributed exclusively through GitHub Releases as installe
 - `C:\EGM\EGM-Releases` is generated output and never a development source.
 - Previous Setup executables, portable ZIPs, source ZIPs and checksum files are removed before each One-Click build.
 - `C:\EGM\EGM-Releases\GitHub-Source` is deleted completely and rebuilt from the current public allowlist.
+## Nexus OAuth secrets
+
+- The public client ID and callback URI are part of the source code.
+- EGM uses OAuth 2.0 Authorization Code with PKCE and does not embed a reusable client secret.
+- Access and refresh tokens are encrypted locally with Windows DPAPI.
+- OAuth token files, runtime configuration and diagnostic data are excluded from the public source export.
+

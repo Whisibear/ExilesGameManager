@@ -19,7 +19,7 @@ from app.services.nexus_client import NexusApiError
 
 logger = logging.getLogger("egm.mods")
 
-NEXUS_DOWNLOAD_DIR = paths.data_dir() / "nexus_downloads"
+NEXUS_DOWNLOAD_DIR = paths.downloads_dir() / "nexus"
 NEXUS_DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -103,17 +103,17 @@ def _safe_download_name(name: str, fallback: str) -> str:
 async def install_nexus_mod(
     instance: dict[str, Any], nexus_mod_id: int, file_id: int | None = None
 ) -> list[dict[str, Any]]:
-    api_key = nexus_session.require_premium_api_key()
+    access_token = await nexus_session.require_premium_access_token()
     mods_path = local_config.get_mods_path(instance)
     if not mods_path:
         raise HTTPException(status_code=400, detail="No Mods folder configured for this server yet.")
 
     try:
-        details = await nexus_client.get_mod_details(api_key, nexus_mod_id)
-        files_payload = await nexus_client.get_mod_files(api_key, nexus_mod_id)
+        details = await nexus_client.get_mod_details(access_token, nexus_mod_id)
+        files_payload = await nexus_client.get_mod_files(access_token, nexus_mod_id)
         file_info = _select_installable_nexus_file(files_payload, file_id)
         file_id = int(file_info["file_id"])
-        links = await nexus_client.get_download_link(api_key, nexus_mod_id, file_id)
+        links = await nexus_client.get_download_link(access_token, nexus_mod_id, file_id)
     except NexusApiError as e:
         raise HTTPException(status_code=e.http_status, detail=e.message)
     except (KeyError, TypeError, ValueError):

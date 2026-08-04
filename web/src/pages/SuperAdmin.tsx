@@ -13,6 +13,7 @@ import { PrivacyModePanel } from "@/components/settings/PrivacyModePanel";
 import { NexusIntegrationPanel } from "@/components/settings/NexusIntegrationPanel";
 import { SteamCmdAccess } from "@/components/mods/SteamCmdAccess";
 import { FirewallManagerPanel } from "@/components/settings/FirewallManagerPanel";
+import { AppUpdatePanel } from "@/components/settings/AppUpdatePanel";
 
 export default function SuperAdmin() {
   const { t } = useTranslation();
@@ -40,6 +41,7 @@ export default function SuperAdmin() {
         </Panel>
       )}
 
+      <AppUpdatePanel />
       <LocalApiSettingsPanel />
       <PrivacyModePanel />
       <FirewallManagerPanel />

@@ -15,9 +15,9 @@ async def get_nexus_mod_files(nexus_mod_id: int) -> list[dict[str, Any]]:
     """Current (non-old-version) files for a Nexus mod, Main file(s) first,
     so the UI can offer a real choice when a mod has more than one - e.g. a
     Main File plus one or more Optional Files."""
-    api_key = nexus_session.require_premium_api_key()
+    access_token = await nexus_session.require_premium_access_token()
     try:
-        files_payload = await nexus_client.get_mod_files(api_key, nexus_mod_id)
+        files_payload = await nexus_client.get_mod_files(access_token, nexus_mod_id)
     except NexusApiError as e:
         raise HTTPException(status_code=e.http_status, detail=e.message)
     files = nexus_mod_service.installable_nexus_files(files_payload)

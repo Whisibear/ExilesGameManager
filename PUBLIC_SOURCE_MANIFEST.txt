@@ -25,6 +25,7 @@ app/routes/mods/wishlist.py
 app/routes/mods/workshop.py
 app/routes/network.py
 app/routes/nexus.py
+app/routes/nexus_oauth_callback.py
 app/routes/notifications.py
 app/routes/performance.py
 app/routes/players.py
@@ -64,6 +65,7 @@ app/services/native_dialog.py
 app/services/network_verification.py
 app/services/nexus_client.py
 app/services/nexus_mod_service.py
+app/services/nexus_oauth.py
 app/services/nexus_session.py
 app/services/nexus_sso.py
 app/services/notification_center.py
@@ -80,6 +82,7 @@ app/services/runtime_logging.py
 app/services/safe_replace.py
 app/services/save_import_service.py
 app/services/scheduler.py
+app/services/secure_store.py
 app/services/server_update.py
 app/services/session_store.py
 app/services/steam_locator.py
@@ -235,6 +238,7 @@ web/src/components/serverControl/ShutdownCountdownDialog.tsx
 web/src/components/serverControl/StartServerControl.tsx
 web/src/components/serverControl/UpdateConfirmDialog.tsx
 web/src/components/settings/AdminPortPanel.tsx
+web/src/components/settings/AppUpdatePanel.tsx
 web/src/components/settings/AutomationPanel.tsx
 web/src/components/settings/DeployServerWizard.tsx
 web/src/components/settings/DiagnosticsPanel.tsx

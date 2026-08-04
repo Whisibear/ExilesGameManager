@@ -1,140 +1,126 @@
 # Exiles Game Manager
 
-Exiles Game Manager (EGM) is a Windows server-management platform with a modern browser-based control panel. The current public beta focuses on Palworld dedicated servers and is designed to expand to Conan Exiles, Rust, ARK and Minecraft in later releases.
+Exiles Game Manager (EGM) is a Windows platform for installing, importing and operating dedicated game servers through one modern control panel. The current public beta provides full Palworld workflows and is being prepared for additional games, beginning with Conan Exiles.
 
-> **Beta notice:** This release is intended for community testing. Keep independent backups of important server saves before using management, update or mod-installation features.
+> **Beta notice:** Keep independent backups of important saves before using server updates, restore operations or mod installation.
 
-## Current beta features
+## What EGM helps with
 
-- Multi-instance Palworld server management
-- Server start, stop, restart and live status
-- World settings and launcher options
-- Backup Center and restore workflows
-- Windows Firewall management and diagnostics
-- Performance monitoring, activity history and task queue
-- Steam Workshop browsing, wishlist and installation workflows
-- Nexus Mods browsing, wishlist and verified installation workflows
-- UE4SS installation from its upstream release source
-- Multilingual interface
-- Integrated logs and diagnostic export
-- GitHub release update notifications
+- Importing existing dedicated-server installations
+- Deploying and managing multiple server instances
+- Starting, stopping and restarting servers
+- Editing server and launcher settings
+- Creating and restoring scoped backups
+- Managing Windows Firewall rules and diagnostics
+- Monitoring performance, activity, logs and background tasks
+- Browsing and installing Steam Workshop content
+- Browsing Nexus Mods metadata and using registered OAuth login for authorized downloads
+- Receiving verified application-update notifications from GitHub Releases
+
+## Supported games
+
+| Game | Status |
+|---|---|
+| Palworld | Public beta |
+| Conan Exiles | Planned next integration |
+| Additional dedicated servers | Planned through the multi-game module architecture |
 
 ## Screenshots
 
 ### Dashboard
-
 ![Dashboard](images/EGM-Dashboard.png)
 
 ### Server Control
-
 ![Server Control](images/EGM-Server-Control.png)
 
 ### Steam Workshop and Nexus Mods
-
 ![Steam Workshop and Nexus Mods](images/EGM-Steam-Workshop-and-Nexus-Mod.png)
 
 ### Task Queue
-
 ![Task Queue](images/EGM-Task-Queue.png)
 
 ### Performance Monitor
-
 ![Performance Monitor](images/EGM-Performance-Monitor.png)
 
 ### Activity Center
-
 ![Activity Center](images/EGM-Activity-Center.png)
 
 ### Firewall Management
-
 ![Firewall Management](images/EGM-Firewall-Management.png)
 
 ### Launcher Options
-
 ![Launcher Options](images/EGM-Launcher-Options.png)
 
 ### Mod Wishlist
-
 ![Mod Wishlist](images/EGM-Mod-Wishlist.png)
 
 ### Settings
-
 ![Settings](images/EGM-Settings.png)
 
-### Settings 2
-
-![Settings 2](images/EGM-Settings-2.png)
-
-### Settings 3
-
-![Settings 3](images/EGM-Settings-3.png)
-
 ### Super Admin
-
 ![Super Admin](images/EGM-Super-Admin.png)
 
-### Super Admin 2
-
-![Super Admin 2](images/EGM-Super-Admin-2.png)
-
-### World Settings
-
-![World Settings](images/EGM-World-Settings.png)
-
-Additional screenshots are available in the [`images`](images) directory.
 ## Installation
 
-1. Download `ExilesGameManager-Setup-vX.Y.Z.exe` from GitHub Releases.
+1. Download the current `ExilesGameManager-Setup-vX.Y.Z.exe` from GitHub Releases.
 2. Run the installer and approve the Windows UAC prompt.
-3. Select the installation directory and optional desktop shortcut.
-4. Finish setup and launch Exiles Game Manager.
-5. Create the first Super Admin account.
-6. Import an existing Palworld server or deploy a new instance.
+3. Launch EGM and create the first Super Admin account.
+4. Import an existing server or deploy a new supported server instance.
 
-SteamCMD is downloaded from Valve during setup and stored under `%ProgramData%\ExilesGameManager`. The application frontend is served directly by the background backend; no separate frontend process or Node.js installation is required.
+The packaged application serves its own frontend. End users do not need to install Node.js. SteamCMD prerequisites are managed by the installer and EGM workflows.
 
-## Application data and logs
+## Where data is stored
 
-Program files are installed under the selected installation directory. Runtime data is stored separately under:
+Application binaries are installed under the directory selected in Setup. Per-user application state is stored under:
 
 ```text
-%ProgramData%\ExilesGameManager
+%LOCALAPPDATA%\ExilesGameManager
+├── config
+├── cache
+├── logs
+├── oauth
+├── downloads
+├── temp
+├── backups
+└── data
 ```
 
-Support logs are available directly in the installation directory under:
+Managed dedicated-server installations remain separate under:
 
 ```text
-Logs\
+%ProgramData%\ExilesGameManager\Servers
 ```
 
-Use the diagnostic export in EGM when reporting a problem.
-
-During uninstall, EGM always removes local login accounts. The uninstaller asks separately whether all remaining runtime data and managed server files should also be deleted. Selecting **No** preserves server data for a later reinstall.
-
-## Automatic updates
-
-EGM checks the configured GitHub Releases channel for newer versions. Super Admins receive an in-panel notification when an update is available. Downloaded Setup packages are verified with their published SHA256 checksum before installation.
+During uninstall, EGM asks separately whether LocalAppData application data and machine-wide managed server data should be removed. Choosing **No** preserves the selected data for a later reinstall.
 
 ## Nexus Mods integration
 
-Public metadata browsing does not require a connected Nexus account. Direct downloads use Nexus Mods authentication and remain subject to Nexus Mods API, SSO, Premium-download and acceptable-use requirements. EGM never asks users to paste a permanent API key into the panel.
+EGM is registered as a public Nexus Mods application. Login uses OAuth 2.0 Authorization Code flow with PKCE and the local callback:
 
-## Security
+```text
+http://127.0.0.1:8000/api/nexus/oauth/callback
+```
 
-- Passwords are salted and hashed locally.
-- Session tokens are held in memory and expire.
-- Steam credentials entered in the normal SteamCMD console are not collected by EGM.
-- REST API ports should remain private unless explicitly secured for remote access.
+Public metadata browsing does not require login. OAuth tokens are encrypted for the current Windows user with Windows DPAPI and are never written to the public source export, logs or diagnostic archives. EGM does not embed a reusable client secret. Direct automatic downloads remain subject to Nexus Mods account permissions, Premium requirements and API policy.
 
-Please report security issues privately rather than publishing credentials, tokens, save files or complete logs in a public issue.
+## Security and privacy
+
+- Local EGM passwords are salted and hashed.
+- Nexus OAuth tokens are stored encrypted under the current Windows user profile.
+- Secrets and runtime data are excluded from the public GitHub source export.
+- Steam credentials entered in the SteamCMD console are not stored by EGM.
+- Administrative API ports should remain private unless protected by an appropriate network-security design.
+
+Report security issues privately and never attach credentials, OAuth tokens, saves or complete private logs to a public issue.
+
+## Development and support
+
+- Build instructions: [`BUILDING.md`](BUILDING.md)
+- Getting started: [`GETTING_STARTED.md`](GETTING_STARTED.md)
+- Public changes: [`CHANGELOG.md`](CHANGELOG.md)
+- Security policy: [`SECURITY.md`](SECURITY.md)
+- Issue tracker: use the repository issue templates
 
 ## License and attribution
 
-EGM is distributed under the MIT License. The original copyright and license notice are retained.
-
-```text
-Copyright (c) 2026 Kvitekvist
-Copyright (c) 2026 Whisibear EGM
-```
-
-See [`LICENSE`](LICENSE), [`CREDITS.md`](CREDITS.md) and [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+EGM is distributed under the MIT License. See [`LICENSE`](LICENSE), [`CREDITS.md`](CREDITS.md) and [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

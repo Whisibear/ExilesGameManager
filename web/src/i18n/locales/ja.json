@@ -1389,7 +1389,7 @@
       "idLabel": "ID {{id}}",
       "removeSavedKey": "保存されたキーを削除",
       "worksWithoutKey": "閲覧と検証済みファイルアップロードはNexus APIキーなしで機能します。",
-      "apiKeyPlaceholder": "直接インストール用のNexus Mods APIキー",
+      "apiKeyPlaceholder": "直接インストール用のNexus Mods OAuth接続",
       "checking": "確認中...",
       "saveKey": "キーを保存"
     },

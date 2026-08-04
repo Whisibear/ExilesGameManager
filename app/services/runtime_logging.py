@@ -23,12 +23,10 @@ _SESSION_ID = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S")
 def logs_root() -> Path:
     """Return the single user-visible EGM log directory.
 
-    Installed builds keep every support-relevant log directly beside the
-    executable under ``Logs``. The installer grants normal users write access
-    only to this folder, while the application files remain read-only.
-    Development builds retain the same project-local behavior.
+    Installed builds keep support-relevant logs under the current user's
+    LocalAppData EGM directory. Development builds retain project-local logs.
     """
-    base = paths.install_dir() / "Logs" if paths.is_frozen() else paths.install_dir() / "logs"
+    base = paths.logs_dir() if paths.is_frozen() else paths.install_dir() / "logs"
     for name in (
         "backend",
         "frontend",

@@ -1,8 +1,8 @@
 """Thin wrappers around Nexus Mods APIs.
 
-Public browsing and file-hash lookups use Nexus' GraphQL API so they do not
-depend on a personal API key. Direct installs use the stored super-admin API
-key and Nexus' REST download-link endpoint.
+Public browsing and file-hash lookups use Nexus' GraphQL API without a
+connected account. Direct installs use the current user's OAuth 2.0 bearer
+token obtained through Authorization Code + PKCE.
 """
 
 import logging
@@ -31,31 +31,31 @@ class NexusApiError(Exception):
     @property
     def http_status(self) -> int:
         """Status to surface on ExilesGameManager's own API, not Nexus's raw one.
-        Nexus's 401 means "that Nexus API key is invalid/expired" - it must
+        Nexus's 401 means "that Nexus OAuth session is invalid/expired" - it must
         never become our own HTTP 401, which the frontend treats as "your
         ExilesGameManager session died" and force-logs the user out over."""
         return 400 if self.status_code == 401 else self.status_code
 
 
-def _headers(api_key: str | None = None) -> dict[str, str]:
+def _headers(access_token: str | None = None) -> dict[str, str]:
     headers = {
         "Accept": "application/json",
         "Application-Name": APP_NAME,
         "Application-Version": APP_VERSION,
     }
-    if api_key:
-        headers["apikey"] = api_key
+    if access_token:
+        headers["Authorization"] = f"Bearer {access_token}"
     return headers
 
 
-async def _get(path: str, api_key: str, params: dict[str, Any] | None = None, premium_hint: bool = False) -> Any:
+async def _get(path: str, access_token: str, params: dict[str, Any] | None = None, premium_hint: bool = False) -> Any:
     """premium_hint should only be set for calls confirmed to be Premium-gated
     (currently just get_download_link) - a 403 anywhere else is unexpected and
     shouldn't be blamed on Premium when we're not actually sure that's why."""
     async with httpx.AsyncClient(timeout=15) as client:
         resp = await client.get(
             f"{BASE_URL}{path}",
-            headers=_headers(api_key),
+            headers=_headers(access_token),
             params=params,
         )
     remaining = resp.headers.get("x-rl-hourly-remaining")
@@ -66,7 +66,7 @@ async def _get(path: str, api_key: str, params: dict[str, Any] | None = None, pr
         f" (hourly quota remaining: {remaining})" if remaining else "",
     )
     if resp.status_code == 401:
-        raise NexusApiError(401, "Invalid or expired Nexus Mods API key.")
+        raise NexusApiError(401, "Invalid or expired Nexus Mods OAuth session.")
     if resp.status_code == 403:
         message = (
             "Nexus Mods Premium is required for this action."
@@ -101,8 +101,8 @@ async def _graphql(query: str, variables: dict[str, Any] | None = None) -> Any:
     return data.get("data") or {}
 
 
-async def validate_key(api_key: str) -> dict[str, Any]:
-    return await _get("/users/validate.json", api_key)
+async def validate_access_token(access_token: str) -> dict[str, Any]:
+    return await _get("/users/validate.json", access_token)
 
 
 _GRAPHQL_SORTS = {
@@ -166,26 +166,26 @@ async def search_mods(query: str, offset: int = 0) -> dict[str, Any]:
     return await _mods_page(filter_, [{"downloads": {"direction": "DESC"}}], offset)
 
 
-async def get_game_categories(api_key: str) -> list[dict[str, Any]]:
-    data = await _get(f"/games/{GAME_DOMAIN}.json", api_key)
+async def get_game_categories(access_token: str) -> list[dict[str, Any]]:
+    data = await _get(f"/games/{GAME_DOMAIN}.json", access_token)
     return data.get("categories", [])
 
 
-async def get_mod_details(api_key: str, mod_id: int) -> dict[str, Any]:
-    return await _get(f"/games/{GAME_DOMAIN}/mods/{mod_id}.json", api_key)
+async def get_mod_details(access_token: str, mod_id: int) -> dict[str, Any]:
+    return await _get(f"/games/{GAME_DOMAIN}/mods/{mod_id}.json", access_token)
 
 
-async def get_mod_files(api_key: str, mod_id: int) -> dict[str, Any]:
-    return await _get(f"/games/{GAME_DOMAIN}/mods/{mod_id}/files.json", api_key)
+async def get_mod_files(access_token: str, mod_id: int) -> dict[str, Any]:
+    return await _get(f"/games/{GAME_DOMAIN}/mods/{mod_id}/files.json", access_token)
 
 
-async def md5_search(api_key: str, md5_hash: str) -> list[dict[str, Any]]:
+async def md5_search(access_token: str, md5_hash: str) -> list[dict[str, Any]]:
     """Reverse-lookup: given a file's MD5, returns every mod+file on Nexus
     (scoped to GAME_DOMAIN by the URL itself) whose uploaded file has that
     exact hash. An empty list means this exact file isn't a real, published
     file for this game on Nexus at all - used to cryptographically verify an
     uploaded file actually matches a real mod, not just a claimed one."""
-    return await _get(f"/games/{GAME_DOMAIN}/mods/md5_search/{md5_hash}.json", api_key)
+    return await _get(f"/games/{GAME_DOMAIN}/mods/md5_search/{md5_hash}.json", access_token)
 
 
 async def file_hash_search(md5_hash: str) -> list[dict[str, Any]]:
@@ -254,10 +254,10 @@ async def get_current_versions(mod_ids: list[int]) -> dict[int, str]:
     return {n["modId"]: n["version"] for n in nodes if n.get("version")}
 
 
-async def get_download_link(api_key: str, mod_id: int, file_id: int) -> list[dict[str, Any]]:
+async def get_download_link(access_token: str, mod_id: int, file_id: int) -> list[dict[str, Any]]:
     return await _get(
         f"/games/{GAME_DOMAIN}/mods/{mod_id}/files/{file_id}/download_link.json",
-        api_key,
+        access_token,
         premium_hint=True,
     )
 

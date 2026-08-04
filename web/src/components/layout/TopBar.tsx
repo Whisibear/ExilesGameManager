@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Users, Server as ServerIcon, ChevronDown, Plus, UserCircle2, LogOut, ArrowUpCircle, Cpu, MemoryStick, Loader2 } from "lucide-react";
+import { Users, Server as ServerIcon, ChevronDown, Plus, UserCircle2, LogOut, ArrowUpCircle, Cpu, MemoryStick, Loader2, ExternalLink, RefreshCw, X } from "lucide-react";
 import { useServerStatus } from "@/hooks/useServerStatus";
 import { useAuth } from "@/hooks/useAuth";
 import { instancesApi, appUpdateApi } from "@/api";
@@ -27,22 +27,89 @@ const PAGE_KEYS: Record<string, string> = {
 function UpdateAvailableBadge() {
   const { t } = useTranslation();
   const [status, setStatus] = React.useState<AppUpdateStatus | null>(null);
+  const [open, setOpen] = React.useState(false);
+  const [checking, setChecking] = React.useState(false);
   const [installing, setInstalling] = React.useState(false);
-  React.useEffect(() => {
-    let cancelled = false;
-    const load = async () => { try { const next = await appUpdateApi.getStatus(); if (!cancelled) setStatus(next); } catch {} };
-    void load();
-    const timer = window.setInterval(load, 5 * 60 * 1000);
-    return () => { cancelled = true; window.clearInterval(timer); };
+  const [error, setError] = React.useState<string | null>(null);
+
+  const load = React.useCallback(async (force = false) => {
+    setChecking(true);
+    setError(null);
+    try {
+      setStatus(await appUpdateApi.getStatus(force));
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : String(reason));
+    } finally {
+      setChecking(false);
+    }
   }, []);
-  if (!status?.updateAvailable) return null;
+
+  React.useEffect(() => {
+    void load(false);
+    const timer = window.setInterval(() => void load(true), 5 * 60 * 1000);
+    return () => window.clearInterval(timer);
+  }, [load]);
+
   async function installUpdate() {
-    if (!status?.installerAvailable || !status.installSupported) { if (status?.releaseUrl) window.open(status.releaseUrl, "_blank", "noopener,noreferrer"); return; }
-    if (!window.confirm(t("updates.confirmInstall", { version: status.latestVersion, defaultValue: `Install EGM ${status.latestVersion} now? EGM will close automatically.` }))) return;
+    if (!status?.updateAvailable) return;
+    if (!status.installerAvailable || !status.installSupported) {
+      if (status.releaseUrl) window.open(status.releaseUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
     setInstalling(true);
-    try { await appUpdateApi.install(); } catch (error) { setInstalling(false); window.alert(error instanceof Error ? error.message : String(error)); }
+    setError(null);
+    try {
+      await appUpdateApi.install();
+    } catch (reason) {
+      setInstalling(false);
+      setError(reason instanceof Error ? reason.message : String(reason));
+    }
   }
-  return <button onClick={() => void installUpdate()} disabled={installing} className="hidden items-center gap-2 rounded-lg border border-life-500/25 bg-life-500/[0.06] px-3 py-2 text-xs font-medium text-life-300 transition hover:border-life-400/45 hover:bg-life-500/[0.1] disabled:opacity-60 xl:flex">{installing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUpCircle className="h-4 w-4" />}{installing ? t("updates.installing", { defaultValue: "Installing update…" }) : t("updates.available", { version: status.latestVersion, defaultValue: `EGM ${status.latestVersion} available` })}</button>;
+
+  if (!status?.updateAvailable) return null;
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="hidden items-center gap-2 rounded-lg border border-life-500/35 bg-life-500/[0.08] px-3 py-2 text-xs font-semibold text-life-200 transition hover:border-life-400/60 hover:bg-life-500/[0.14] lg:flex"
+      >
+        <ArrowUpCircle className="h-4 w-4" />
+        <span>{t("updates.headerAvailable", { defaultValue: "New update available" })}</span>
+        <span className="rounded bg-life-500/15 px-1.5 py-0.5 font-mono text-[10px]">{status.latestVersion}</span>
+      </button>
+
+      {open && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-mana-500/35 bg-[#0a1119] shadow-2xl shadow-black/60">
+            <div className="flex items-start justify-between border-b border-stone-700/60 px-5 py-4">
+              <div>
+                <p className="text-[11px] uppercase tracking-[.18em] text-mana-300/70">{t("updates.dialogEyebrow", { defaultValue: "Exiles Game Manager Update" })}</p>
+                <h2 className="mt-1 text-xl font-semibold text-parchment-100">{t("updates.dialogTitle", { version: status.latestVersion, defaultValue: `Install ${status.latestVersion}?` })}</h2>
+              </div>
+              <button type="button" onClick={() => setOpen(false)} disabled={installing} className="rounded-md p-1.5 text-parchment-300/50 transition hover:bg-white/5 hover:text-parchment-100"><X className="h-4 w-4" /></button>
+            </div>
+
+            <div className="space-y-4 px-5 py-5">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-lg border border-stone-700/60 bg-black/15 p-3"><p className="text-[10px] uppercase tracking-[.16em] text-parchment-300/45">{t("updates.currentVersion", { defaultValue: "Installed version" })}</p><p className="mt-1 font-mono text-sm text-parchment-100">{status.currentVersion}</p></div>
+                <div className="rounded-lg border border-life-500/25 bg-life-500/[0.05] p-3"><p className="text-[10px] uppercase tracking-[.16em] text-life-300/60">{t("updates.latestVersion", { defaultValue: "Available version" })}</p><p className="mt-1 font-mono text-sm text-life-200">{status.latestVersion}</p></div>
+              </div>
+              <div className="rounded-lg border border-mana-500/20 bg-mana-500/[0.05] p-4 text-sm leading-relaxed text-parchment-200/75">{t("updates.automaticFlow", { defaultValue: "EGM downloads the verified installer, closes all EGM processes, updates the existing installation and starts EGM again automatically. Settings, OAuth data, servers and backups remain unchanged." })}</div>
+              {error && <div className="rounded-lg border border-red-500/30 bg-red-500/[0.07] p-3 text-sm text-red-200">{error}</div>}
+            </div>
+
+            <div className="flex flex-wrap justify-end gap-2 border-t border-stone-700/60 px-5 py-4">
+              {status.releaseUrl && <button type="button" disabled={installing} onClick={() => window.open(status.releaseUrl!, "_blank", "noopener,noreferrer")} className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-parchment-200 transition hover:bg-white/5"><ExternalLink className="h-4 w-4" />{t("updates.releaseNotes", { defaultValue: "Release page" })}</button>}
+              <button type="button" disabled={checking || installing} onClick={() => void load(true)} className="inline-flex items-center gap-2 rounded-lg border border-stone-600/80 px-3 py-2 text-sm text-parchment-100 transition hover:border-mana-500/50 disabled:opacity-50">{checking ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}{t("updates.checkAgain", { defaultValue: "Check again" })}</button>
+              <button type="button" disabled={installing} onClick={() => void installUpdate()} className="inline-flex items-center gap-2 rounded-lg border border-life-500/40 bg-life-500/[0.1] px-3 py-2 text-sm font-semibold text-life-200 transition hover:bg-life-500/[0.16] disabled:opacity-50">{installing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUpCircle className="h-4 w-4" />}{installing ? t("updates.preparingInstall", { defaultValue: "Preparing update…" }) : t("updates.installAndRestart", { defaultValue: "Update and restart" })}</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }
 
 function InstanceSwitcher() {

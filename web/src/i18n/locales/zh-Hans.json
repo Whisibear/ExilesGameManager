@@ -1389,7 +1389,7 @@
       "idLabel": "ID {{id}}",
       "removeSavedKey": "移除已保存的密钥",
       "worksWithoutKey": "浏览和经过验证的文件上传无需Nexus API密钥即可使用。",
-      "apiKeyPlaceholder": "用于直接安装的Nexus Mods API密钥",
+      "apiKeyPlaceholder": "用于直接安装的 Nexus Mods OAuth 连接",
       "checking": "正在检查...",
       "saveKey": "保存密钥"
     },

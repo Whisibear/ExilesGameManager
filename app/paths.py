@@ -60,11 +60,78 @@ def _documents_dir() -> Path:
     return Path.home() / "Documents"
 
 
+def local_app_data_root() -> Path:
+    """Stable per-user application-data root for installed EGM builds."""
+    base = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "ExilesGameManager"
+    base.mkdir(parents=True, exist_ok=True)
+    return base
+
+
 def program_data_root() -> Path:
-    """Stable machine-wide writable root used by installed EGM builds."""
+    """Machine-wide root reserved for managed dedicated-server installations."""
     base = Path(os.environ.get("PROGRAMDATA", r"C:\ProgramData")) / "ExilesGameManager"
     return base
 
+
+def config_dir() -> Path:
+    path = local_app_data_root() / "config"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def cache_dir() -> Path:
+    path = local_app_data_root() / "cache"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def logs_dir() -> Path:
+    path = local_app_data_root() / "logs"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def oauth_dir() -> Path:
+    path = local_app_data_root() / "oauth"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def downloads_dir() -> Path:
+    path = local_app_data_root() / "downloads"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def temp_dir() -> Path:
+    path = local_app_data_root() / "temp"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def backups_dir() -> Path:
+    path = local_app_data_root() / "backups"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+
+def ensure_local_app_layout() -> dict[str, Path]:
+    """Create and return the complete per-user EGM application-data layout."""
+    directories = {
+        "root": local_app_data_root(),
+        "config": config_dir(),
+        "cache": cache_dir(),
+        "logs": logs_dir(),
+        "oauth": oauth_dir(),
+        "downloads": downloads_dir(),
+        "temp": temp_dir(),
+        "backups": backups_dir(),
+        "data": local_app_data_root() / "data",
+    }
+    for path in directories.values():
+        path.mkdir(parents=True, exist_ok=True)
+    return directories
 
 def documents_data_dir() -> Path:
     """Legacy Documents location retained only for migration detection."""
@@ -106,7 +173,12 @@ def detect_legacy_data_dir() -> Path | None:
     resolved this (see documents_data_dir())."""
     if not is_frozen():
         return None
-    for candidate in (_legacy_install_folder_data_dir(), documents_data_dir(), _legacy_appdata_data_dir()):
+    for candidate in (
+        _legacy_install_folder_data_dir(),
+        program_data_root() / "data",
+        documents_data_dir(),
+        _legacy_appdata_data_dir(),
+    ):
         if candidate.is_dir():
             return candidate
     return None
@@ -135,7 +207,7 @@ def migrate_data_dir(legacy_dir: Path) -> Path:
     """
     from app.services import safe_replace
 
-    new_dir = program_data_root() / "data"
+    new_dir = local_app_data_root() / "data"
     safe_replace.safe_replace_dir(legacy_dir, new_dir)
 
     import shutil
@@ -149,7 +221,7 @@ def data_dir() -> Path:
     if override:
         base = Path(override)
     elif is_frozen():
-        base = program_data_root() / "data"
+        base = local_app_data_root() / "data"
     else:
         base = Path(__file__).resolve().parent.parent / "data"
     base.mkdir(parents=True, exist_ok=True)
