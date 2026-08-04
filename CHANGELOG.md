@@ -1,37 +1,4 @@
-## 0.8.0 - Clean release regeneration and verified GitHub mirror publishing
-
-- Extended `EGM_One_Click_Release.bat` to delete all previous release ZIPs, Setup executables, checksum files and the complete `GitHub-Source` directory before starting a new build.
-- Extended `EGM_One_Click_Release.ps1` with the same guarded cleanup as a second safety layer.
-- Updated the internal One-Click build script so the public GitHub source directory is always removed and recreated before export.
-- Extended `EGM_Publish_To_GitHub.bat` with source-export preflight validation and persistent console output.
-- Updated `EGM_Publish_To_GitHub.ps1` to abort rebase or merge operations only when they are actually active.
-- The local GitHub publication mirror continues to be reset to `origin/main`, emptied except for `.git`, repopulated from the current public source export, committed, pushed and verified by commit hash.
-
-## 0.8.0 - Deterministic One-Click release cleanup
-
-- `EGM_One_Click_Release` now removes all previous portable ZIPs, Setup executables and checksum files before every build.
-- `C:\EGM\EGM-Releases\GitHub-Source` is deleted completely before a new public source export is created.
-- The GitHub source ZIP is recreated from the current project instead of being overlaid on an older export.
-- After a successful build, `C:\EGM\EGM-Releases` contains only the current Setup, portable ZIP, checksums, GitHub source ZIP and freshly generated `GitHub-Source` directory.
-- Existing README screenshot fixes, cleaned EGM images, empty wiki content and verified GitHub publishing remain unchanged.
-
-## 0.8.0 - GitHub mirror reset and thumbnail cleanup
-
-- Removed the obsolete `images/EGM-Thumbnail.png` asset.
-- Updated the GitHub publisher to abort stale rebase or merge operations automatically.
-- Reset the local GitHub mirror to `origin/main` before every source synchronization.
-- Added automatic cleanup of untracked mirror files before publishing.
-- Added explicit rejection of the obsolete thumbnail in both the source export and GitHub mirror.
-- Preserved publish logging, open-console behavior and local/remote commit verification.
-
-## 0.8.0 - README screenshots, legacy asset cleanup and verified GitHub publishing
-
-- Renamed all EGM screenshot files to stable hyphenated filenames without spaces or special characters.
-- Rebuilt the README screenshot section with valid GitHub preview paths.
-- Removed all non-EGM image assets while retaining the complete `images/branding/` directory.
-- Removed obsolete AutoPalExpress content from the `wiki/` directory.
-- Updated `EGM_Publish_To_GitHub` so the console remains open after completion.
-- Added persistent publish logs and verification that local `HEAD` matches `origin/main`.
+# Changelog
 
 ## 0.8.0 - Steam Workshop Browser & Wishlist
 
@@ -141,14 +108,12 @@
 - Audited all TypeScript and TSX named imports for duplicate local identifiers.
 - Preserved the provided working `Start_Exiles_Game_Manager.bat` unchanged.
 
-
 - Replaced `Start_Exiles_Game_Manager.bat` with the exact user-supplied working launcher.
 - Removed the legacy internal logger namespace `palworld_admin` in favor of `egm`.
 - Removed Python cache and compiled artifacts from the release.
 - Audited the complete source and release tree for obsolete product branding.
 - Preserved upstream attribution in README, LICENSE, and legal/credits documentation.
 - Added `docs/RELEASE_INTEGRITY_AUDIT_V0_6.md`.
-
 
 ## v0.6.0 - Quality & Polish
 
@@ -188,7 +153,6 @@
 - Added unified live Activity Center with server, application, and task events.
 - Added multi-server, category, level, and search filters.
 - Added Task Queue completion/failure/cancellation and server warning/error notifications.
-
 
 ## v0.5.0 - Modern Desktop UI
 
@@ -237,7 +201,6 @@
 - The dashboard receives HTTP 200 and the persisted per-instance roster with every player marked offline, eliminating repeated REST-related error notifications and console noise.
 - Authentication failures and genuine Palworld REST rejections remain actionable errors.
 - Added regression coverage and documented the behavior in `docs/PLAYER_ROSTER_OFFLINE_BEHAVIOR.md`.
-
 
 ## v5.13.1 - University request optimization
 
@@ -493,7 +456,6 @@
 - Added a final background-job exception guard so unexpected deployment failures are returned to the frontend as `error` instead of leaving the deployment dialog polling forever.
 - Clean clones continue to use the copied server installation's own `DefaultPalWorldSettings.ini`; saves, mods, logs and runtime data remain excluded.
 
-
 ## v5.11.2 - Instance-Scoped Server Activity Logs
 
 - Server Activity in The Chronicle is now filtered by the currently selected Palworld server instance.
@@ -528,7 +490,6 @@
 - Defined clean release packaging as a core release invariant: every ZIP must contain exactly one `ExilesGameManager-main` project folder and no temporary merge/work directories.
 - Removed the accidentally packaged `apx5123` working directory from the release archive.
 
-
 ## EGM Fork Identity
 - Added identity and roadmap documentation.
 
@@ -552,19 +513,6 @@
 - Routed manual/scheduled backups, backup verification/restores, Steam Workshop installs/updates, firewall synchronization/removal, and server updates through the central queue without breaking existing API response contracts.
 - Added restart-safe persistence: queued tasks resume, while interrupted running tasks fail safely and require explicit retry.
 - Added `docs/TASK_QUEUE.md`, `docs/TASK_QUEUE_VALIDATION.md`, and queue regression tests.
-
-### v0.7.0-r1 - Audit launcher hotfix
-
-- Fixed the PowerShell parser error in `Start_Exiles_Game_Manager_Audit.bat`.
-- Replaced the fragile inline `-Command` pipeline with dedicated backend and frontend audit scripts.
-- Added timestamped console capture for complete backend and Vite output.
-- Audit logs are written to `logs/backend` and `logs/frontend` while remaining visible in the PowerShell windows.
-
-## 0.7.0-r2 - Backend Audit Startup Fix
-
-- Fixed the backend audit launcher treating Python warnings written to stderr as fatal PowerShell errors.
-- Backend warnings remain visible and timestamped in the audit log without stopping the EGM backend.
-- Restored complete frontend loading during release-audit sessions.
 
 ## 0.8.0
 - Separated Steam Workshop wishlist entries from Nexus Mods throughout the Mods and Administration pages.
