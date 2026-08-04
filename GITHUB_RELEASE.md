@@ -10,3 +10,12 @@
 7. Never upload `.venv`, `node_modules`, Steam credentials, server saves, Workshop caches or diagnostic logs.
 
 The in-app updater selects the newest supported GitHub release and looks for the Setup `.exe` asset automatically.
+
+- Verify all README screenshot previews.
+- Verify `images/` contains only `EGM-*` assets and `images/branding/`.
+- Verify no legacy AutoPalExpress wiki content remains.
+- Verify the publisher reports identical local and remote commit hashes.
+
+- Confirm that `images/EGM-Thumbnail.png` is absent.
+- Confirm that the publisher resets the mirror to `origin/main` before synchronization.
+- Confirm that no rebase or merge operation remains active after publishing.

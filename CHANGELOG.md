@@ -1,3 +1,21 @@
+## 0.8.0 - GitHub mirror reset and thumbnail cleanup
+
+- Removed the obsolete `images/EGM-Thumbnail.png` asset.
+- Updated the GitHub publisher to abort stale rebase or merge operations automatically.
+- Reset the local GitHub mirror to `origin/main` before every source synchronization.
+- Added automatic cleanup of untracked mirror files before publishing.
+- Added explicit rejection of the obsolete thumbnail in both the source export and GitHub mirror.
+- Preserved publish logging, open-console behavior and local/remote commit verification.
+
+## 0.8.0 - README screenshots, legacy asset cleanup and verified GitHub publishing
+
+- Renamed all EGM screenshot files to stable hyphenated filenames without spaces or special characters.
+- Rebuilt the README screenshot section with valid GitHub preview paths.
+- Removed all non-EGM image assets while retaining the complete `images/branding/` directory.
+- Removed obsolete AutoPalExpress content from the `wiki/` directory.
+- Updated `EGM_Publish_To_GitHub` so the console remains open after completion.
+- Added persistent publish logs and verification that local `HEAD` matches `origin/main`.
+
 ## 0.8.0 - Steam Workshop Browser & Wishlist
 
 - Added a Nexus-style Steam Workshop browser with trending, latest-added, latest-updated and search views.

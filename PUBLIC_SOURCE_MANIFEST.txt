@@ -110,43 +110,21 @@ images/branding/egm-icon-256.png
 images/branding/egm-icon-512.png
 images/branding/egm-logo-lockup-dark.png
 images/branding/ExilesGameManager.ico
-images/Dashboard.png
-images/EGM-Activity Center.png
+images/EGM-Activity-Center.png
 images/EGM-Dashboard.png
-images/EGM-Firewall Management.png
-images/EGM-Launcher Options.png
-images/EGM-Mod Wishlist.png
-images/EGM-Performance Monitor.png
-images/EGM-Server Control.png
-images/EGM-Settings 2.png
-images/EGM-Settings 3.png
+images/EGM-Firewall-Management.png
+images/EGM-Launcher-Options.png
+images/EGM-Mod-Wishlist.png
+images/EGM-Performance-Monitor.png
+images/EGM-Server-Control.png
 images/EGM-Settings.png
-images/EGM-Steam Workshop & Nexus Mod.png
-images/EGM-Super Admin 2.png
-images/EGM-Super Admin.png
-images/EGM-Task Queue.png
-images/EGM-Thumbnail.png
-images/EGM-WorldSettings.png
-images/getting-started-01-installer-additional-tasks.png
-images/getting-started-01-installer-confirm.png
-images/getting-started-01-installer-location.png
-images/getting-started-01-installer-start.png
-images/getting-started-02-installer-startup.png
-images/getting-started-03-admin-account.png
-images/getting-started-04-server-choice.png
-images/getting-started-06-start-server.png
-images/getting-started-07-dashboard-online.png
-images/getting-started-08-game-port.png
-images/getting-started-09-router-port-forward.png
-images/getting-started-10-launcher-options.png
-images/getting-started-11-world-settings.png
-images/getting-started-12-mods.png
-images/getting-started-13-invite-users.png
-images/home.png
-images/Logs.png
-images/Mods.png
-images/SuperAdmin.png
-images/UAC.png
+images/EGM-Settings-2.png
+images/EGM-Settings-3.png
+images/EGM-Steam-Workshop-and-Nexus-Mod.png
+images/EGM-Super-Admin.png
+images/EGM-Super-Admin-2.png
+images/EGM-Task-Queue.png
+images/EGM-World-Settings.png
 Install_Prerequisites.ps1
 Install_SteamCMD.ps1
 installer.iss

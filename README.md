@@ -21,18 +21,67 @@ Exiles Game Manager (EGM) is a Windows server-management platform with a modern 
 
 ## Screenshots
 
+### Dashboard
+
 ![Dashboard](images/EGM-Dashboard.png)
+
+### Server Control
 
 ![Server Control](images/EGM-Server-Control.png)
 
-![Steam Workshop and Nexus Mods](images/EGM-Steam-Workshop-&-Nexus-Mod.png)
+### Steam Workshop and Nexus Mods
+
+![Steam Workshop and Nexus Mods](images/EGM-Steam-Workshop-and-Nexus-Mod.png)
+
+### Task Queue
 
 ![Task Queue](images/EGM-Task-Queue.png)
 
+### Performance Monitor
+
 ![Performance Monitor](images/EGM-Performance-Monitor.png)
 
-Additional screenshots are available in the [`images`](images) directory.
+### Activity Center
 
+![Activity Center](images/EGM-Activity-Center.png)
+
+### Firewall Management
+
+![Firewall Management](images/EGM-Firewall-Management.png)
+
+### Launcher Options
+
+![Launcher Options](images/EGM-Launcher-Options.png)
+
+### Mod Wishlist
+
+![Mod Wishlist](images/EGM-Mod-Wishlist.png)
+
+### Settings
+
+![Settings](images/EGM-Settings.png)
+
+### Settings 2
+
+![Settings 2](images/EGM-Settings-2.png)
+
+### Settings 3
+
+![Settings 3](images/EGM-Settings-3.png)
+
+### Super Admin
+
+![Super Admin](images/EGM-Super-Admin.png)
+
+### Super Admin 2
+
+![Super Admin 2](images/EGM-Super-Admin-2.png)
+
+### World Settings
+
+![World Settings](images/EGM-World-Settings.png)
+
+Additional screenshots are available in the [`images`](images) directory.
 ## Installation
 
 1. Download `ExilesGameManager-Setup-vX.Y.Z.exe` from GitHub Releases.

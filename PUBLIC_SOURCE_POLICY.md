@@ -23,3 +23,17 @@ Excluded scope:
 - credentials, API keys, OAuth secrets, tokens, passwords, and user-specific configuration
 
 Release binaries are distributed exclusively through GitHub Releases as installer, portable archive, and SHA-256 checksum assets. They are not committed to the source tree.
+
+## Media, wiki and publishing
+
+- Public screenshots use `EGM-*` filenames with hyphens and no spaces or special characters.
+- `images/branding/` is retained as the canonical branding directory.
+- Legacy AutoPalExpress wiki content is excluded.
+- GitHub publishing must verify that local `HEAD` equals remote `origin/main`.
+
+## GitHub mirror synchronization
+
+- The local GitHub directory is a disposable publication mirror, not a development source.
+- Before each publication it is reset to `origin/main` and cleaned.
+- Stale rebases and merges are aborted automatically.
+- `images/EGM-Thumbnail.png` is explicitly excluded as obsolete.
