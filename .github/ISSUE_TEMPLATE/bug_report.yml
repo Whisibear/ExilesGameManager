@@ -1,0 +1,46 @@
+name: Bug report
+description: Report a reproducible problem in Exiles Game Manager
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping improve Exiles Game Manager. Do not include passwords, API keys, tokens, saves, or private server data.
+  - type: input
+    id: version
+    attributes:
+      label: EGM version
+      placeholder: 0.8.0
+    validations:
+      required: true
+  - type: dropdown
+    id: installation
+    attributes:
+      label: Installation type
+      options:
+        - Windows Setup
+        - Portable ZIP
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem description
+      description: Describe what happened and what you expected.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open ...
+        2. Select ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Sanitized diagnostics
+      description: Attach only sanitized output from support/diagnose-exilesgamemanager.ps1.

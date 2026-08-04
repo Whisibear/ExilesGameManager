@@ -1,0 +1,25 @@
+name: Support question
+description: Ask for help using Exiles Game Manager
+title: "[Support]: "
+labels: ["support"]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include passwords, API keys, tokens, saves, or private server data.
+  - type: input
+    id: version
+    attributes:
+      label: EGM version
+      placeholder: 0.8.0
+    validations:
+      required: true
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+    validations:
+      required: true
+  - type: textarea
+    id: attempted
+    attributes:
+      label: What have you already tried?
