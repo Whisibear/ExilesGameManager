@@ -1709,6 +1709,11 @@
     "releaseNotes": "Release-Seite",
     "checkAgain": "Erneut prüfen",
     "preparingInstall": "Update wird vorbereitet…",
-    "installAndRestart": "Aktualisieren und neu starten"
+    "installAndRestart": "Aktualisieren und neu starten",
+    "downloadPhase": "Update wird heruntergeladen…",
+    "verifyPhase": "SHA-256 wird geprüft…",
+    "preparePhase": "Installation wird vorbereitet…",
+    "closePhase": "EGM wird beendet und der Installer gestartet…",
+    "completed": "Update erfolgreich abgeschlossen."
   }
 }

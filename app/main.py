@@ -35,7 +35,7 @@ from app.routes import (
     university,
     users,
 )
-from app.services import app_event_log, first_run_setup, instance_store, scheduler, task_queue, runtime_logging, steamcmd
+from app.services import app_event_log, app_update as app_update_service, first_run_setup, instance_store, scheduler, task_queue, runtime_logging, steamcmd
 from app.services import system_settings as system_settings_service
 
 runtime_logging.configure_logging(system_settings_service.is_debug_logging_enabled())
@@ -66,7 +66,7 @@ logging.getLogger("uvicorn.access").addFilter(_PollingNoiseFilter())
 
 instance_store.migrate_legacy_single_instance()
 
-app = FastAPI(title="Exiles Game Manager Backend", version="0.8.1-beta.1")
+app = FastAPI(title="Exiles Game Manager Backend", version="0.8.1-beta.2")
 
 
 @app.middleware("http")
@@ -98,6 +98,7 @@ async def audit_http_requests(request, call_next):
 @app.on_event("startup")
 async def _start_scheduler() -> None:
     ensure_local_app_layout()
+    app_update_service.consume_completion_marker()
     app_event_log.log("info", "Backend", "ExilesGameManager backend starting.")
     await task_queue.start()
     asyncio.create_task(scheduler.run_forever())

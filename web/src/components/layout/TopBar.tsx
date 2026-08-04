@@ -30,6 +30,7 @@ function UpdateAvailableBadge() {
   const [open, setOpen] = React.useState(false);
   const [checking, setChecking] = React.useState(false);
   const [installing, setInstalling] = React.useState(false);
+  const installPollRef = React.useRef<number | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
   const load = React.useCallback(async (force = false) => {
@@ -47,7 +48,10 @@ function UpdateAvailableBadge() {
   React.useEffect(() => {
     void load(false);
     const timer = window.setInterval(() => void load(true), 5 * 60 * 1000);
-    return () => window.clearInterval(timer);
+    return () => {
+      window.clearInterval(timer);
+      if (installPollRef.current !== null) window.clearInterval(installPollRef.current);
+    };
   }, [load]);
 
   async function installUpdate() {
@@ -60,6 +64,19 @@ function UpdateAvailableBadge() {
     setError(null);
     try {
       await appUpdateApi.install();
+      installPollRef.current = window.setInterval(async () => {
+        try {
+          const next = await appUpdateApi.getStatus(false);
+          setStatus(next);
+          if (next.installPhase === "failed") {
+            setInstalling(false);
+            setError(next.installError ?? next.installMessage ?? "The automatic update failed.");
+            if (installPollRef.current !== null) window.clearInterval(installPollRef.current);
+          }
+        } catch {
+          // Expected once the backend closes and the detached updater takes over.
+        }
+      }, 500);
     } catch (reason) {
       setInstalling(false);
       setError(reason instanceof Error ? reason.message : String(reason));
@@ -73,10 +90,10 @@ function UpdateAvailableBadge() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="hidden items-center gap-2 rounded-lg border border-life-500/35 bg-life-500/[0.08] px-3 py-2 text-xs font-semibold text-life-200 transition hover:border-life-400/60 hover:bg-life-500/[0.14] lg:flex"
+        className="flex items-center gap-2 rounded-lg border border-life-500/40 bg-life-500/[0.09] px-2.5 py-2 text-xs font-semibold text-life-200 shadow-[0_0_18px_rgba(120,255,80,.08)] transition hover:border-life-400/65 hover:bg-life-500/[0.15]"
       >
         <ArrowUpCircle className="h-4 w-4" />
-        <span>{t("updates.headerAvailable", { defaultValue: "New update available" })}</span>
+        <span className="hidden xl:inline">{t("updates.headerAvailable", { defaultValue: "New update available" })}</span>
         <span className="rounded bg-life-500/15 px-1.5 py-0.5 font-mono text-[10px]">{status.latestVersion}</span>
       </button>
 
@@ -97,6 +114,24 @@ function UpdateAvailableBadge() {
                 <div className="rounded-lg border border-life-500/25 bg-life-500/[0.05] p-3"><p className="text-[10px] uppercase tracking-[.16em] text-life-300/60">{t("updates.latestVersion", { defaultValue: "Available version" })}</p><p className="mt-1 font-mono text-sm text-life-200">{status.latestVersion}</p></div>
               </div>
               <div className="rounded-lg border border-mana-500/20 bg-mana-500/[0.05] p-4 text-sm leading-relaxed text-parchment-200/75">{t("updates.automaticFlow", { defaultValue: "EGM downloads the verified installer, closes all EGM processes, updates the existing installation and starts EGM again automatically. Settings, OAuth data, servers and backups remain unchanged." })}</div>
+
+              {(installing || status.installing) && (
+                <div className="space-y-2 rounded-lg border border-mana-500/25 bg-mana-500/[0.05] p-4">
+                  <div className="flex items-center justify-between gap-3 text-xs">
+                    <span className="text-parchment-200/75">
+                      {status.installMessage ?? t("updates.preparingInstall", { defaultValue: "Preparing update…" })}
+                    </span>
+                    <span className="font-mono text-mana-200">{status.installProgress ?? 0}%</span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-black/35">
+                    <div
+                      className="h-full rounded-full bg-mana-400 transition-[width] duration-300"
+                      style={{ width: `${status.installProgress ?? 0}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
               {error && <div className="rounded-lg border border-red-500/30 bg-red-500/[0.07] p-3 text-sm text-red-200">{error}</div>}
             </div>
 

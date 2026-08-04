@@ -304,6 +304,11 @@ export interface AppUpdateStatus {
   installerAvailable?: boolean;
   installSupported?: boolean;
   installing?: boolean;
+  installPhase?: string;
+  installProgress?: number;
+  installMessage?: string | null;
+  installError?: string | null;
+  targetVersion?: string | null;
   channel?: string;
   repository?: string;
 }

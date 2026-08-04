@@ -1,6 +1,14 @@
 # Changelog
 
-## 0.8.1-beta.1 - One-click automatic updates
+## 0.8.1-beta.2 - Reliable automatic update workflow
+
+- Added a compact `New update available` card directly left of the notification bell.
+- Added live download, verification and installation-preparation progress.
+- Reworked automatic updates to use a detached Windows hand-off process that waits for EGM to close, runs the verified installer and restarts EGM.
+- Added an Activity entry and notification after a successful update restart.
+- Fixed cases where EGM closed before the installer was reliably launched.
+
+## 0.8.1-beta.2 - One-click automatic updates
 
 - Added a prominent update notification next to the notification bell.
 - Added an update confirmation dialog with installed and available version information.

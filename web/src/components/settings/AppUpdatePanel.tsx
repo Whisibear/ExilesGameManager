@@ -11,6 +11,7 @@ export function AppUpdatePanel() {
   const [status, setStatus] = React.useState<AppUpdateStatus | null>(null);
   const [checking, setChecking] = React.useState(true);
   const [installing, setInstalling] = React.useState(false);
+  const installPollRef = React.useRef<number | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
   const load = React.useCallback(async (force = false) => {
@@ -27,6 +28,9 @@ export function AppUpdatePanel() {
 
   React.useEffect(() => {
     void load(false);
+    return () => {
+      if (installPollRef.current !== null) window.clearInterval(installPollRef.current);
+    };
   }, [load]);
 
   async function install() {
@@ -49,6 +53,20 @@ export function AppUpdatePanel() {
     setError(null);
     try {
       await appUpdateApi.install();
+      installPollRef.current = window.setInterval(async () => {
+        try {
+          const next = await appUpdateApi.getStatus(false);
+          setStatus(next);
+          if (next.installPhase === "failed") {
+            setInstalling(false);
+            setError(next.installError ?? next.installMessage ?? "The automatic update failed.");
+            if (installPollRef.current !== null) window.clearInterval(installPollRef.current);
+          }
+        } catch {
+          // The backend becomes unreachable when EGM closes for installation.
+          // Keep the final status visible while the external updater takes over.
+        }
+      }, 500);
     } catch (reason) {
       setInstalling(false);
       setError(reason instanceof Error ? reason.message : String(reason));
@@ -89,6 +107,24 @@ export function AppUpdatePanel() {
             {checking
               ? t("updates.checking", { defaultValue: "Checking GitHub releases…" })
               : t("updates.upToDate", { defaultValue: "This installation is up to date." })}
+          </div>
+        )}
+
+
+        {(installing || status?.installing) && (
+          <div className="space-y-2 rounded-lg border border-mana-500/25 bg-mana-500/[0.05] p-3">
+            <div className="flex items-center justify-between gap-3 text-xs">
+              <span className="text-parchment-200/75">
+                {status?.installMessage ?? t("updates.preparingInstall", { defaultValue: "Preparing update…" })}
+              </span>
+              <span className="font-mono text-mana-200">{status?.installProgress ?? 0}%</span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-black/35">
+              <div
+                className="h-full rounded-full bg-mana-400 transition-[width] duration-300"
+                style={{ width: `${status?.installProgress ?? 0}%` }}
+              />
+            </div>
           </div>
         )}
 

@@ -496,6 +496,11 @@
     "releaseNotes": "Release page",
     "checkAgain": "Check again",
     "preparingInstall": "Preparing update…",
-    "installAndRestart": "Update and restart"
+    "installAndRestart": "Update and restart",
+    "downloadPhase": "Downloading update…",
+    "verifyPhase": "Verifying SHA-256…",
+    "preparePhase": "Preparing installation…",
+    "closePhase": "Closing EGM and starting installer…",
+    "completed": "Update completed successfully."
   }
 }
