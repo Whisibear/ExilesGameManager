@@ -37,3 +37,9 @@ Release binaries are distributed exclusively through GitHub Releases as installe
 - Before each publication it is reset to `origin/main` and cleaned.
 - Stale rebases and merges are aborted automatically.
 - `images/EGM-Thumbnail.png` is explicitly excluded as obsolete.
+
+## Generated release output
+
+- `C:\EGM\EGM-Releases` is generated output and never a development source.
+- Previous Setup executables, portable ZIPs, source ZIPs and checksum files are removed before each One-Click build.
+- `C:\EGM\EGM-Releases\GitHub-Source` is deleted completely and rebuilt from the current public allowlist.

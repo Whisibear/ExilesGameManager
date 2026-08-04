@@ -1,3 +1,20 @@
+## 0.8.0 - Clean release regeneration and verified GitHub mirror publishing
+
+- Extended `EGM_One_Click_Release.bat` to delete all previous release ZIPs, Setup executables, checksum files and the complete `GitHub-Source` directory before starting a new build.
+- Extended `EGM_One_Click_Release.ps1` with the same guarded cleanup as a second safety layer.
+- Updated the internal One-Click build script so the public GitHub source directory is always removed and recreated before export.
+- Extended `EGM_Publish_To_GitHub.bat` with source-export preflight validation and persistent console output.
+- Updated `EGM_Publish_To_GitHub.ps1` to abort rebase or merge operations only when they are actually active.
+- The local GitHub publication mirror continues to be reset to `origin/main`, emptied except for `.git`, repopulated from the current public source export, committed, pushed and verified by commit hash.
+
+## 0.8.0 - Deterministic One-Click release cleanup
+
+- `EGM_One_Click_Release` now removes all previous portable ZIPs, Setup executables and checksum files before every build.
+- `C:\EGM\EGM-Releases\GitHub-Source` is deleted completely before a new public source export is created.
+- The GitHub source ZIP is recreated from the current project instead of being overlaid on an older export.
+- After a successful build, `C:\EGM\EGM-Releases` contains only the current Setup, portable ZIP, checksums, GitHub source ZIP and freshly generated `GitHub-Source` directory.
+- Existing README screenshot fixes, cleaned EGM images, empty wiki content and verified GitHub publishing remain unchanged.
+
 ## 0.8.0 - GitHub mirror reset and thumbnail cleanup
 
 - Removed the obsolete `images/EGM-Thumbnail.png` asset.

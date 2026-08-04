@@ -19,3 +19,7 @@ The in-app updater selects the newest supported GitHub release and looks for the
 - Confirm that `images/EGM-Thumbnail.png` is absent.
 - Confirm that the publisher resets the mirror to `origin/main` before synchronization.
 - Confirm that no rebase or merge operation remains active after publishing.
+
+- Confirm that all older Setup executables, portable ZIPs and checksum files are removed before the build.
+- Confirm that `C:\EGM\EGM-Releases\GitHub-Source` is deleted and recreated.
+- Confirm that only artifacts from the current One-Click build remain in `C:\EGM\EGM-Releases`.
