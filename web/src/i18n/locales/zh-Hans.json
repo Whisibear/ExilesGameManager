@@ -24,7 +24,8 @@
       "operations": "操作",
       "maintenance": "维护",
       "administration": "管理"
-    }
+    },
+    "donate": "支持项目"
   },
   "topbar": {
     "pages": {
@@ -660,7 +661,8 @@
       "version": "版本",
       "versionHint": "服务器构建版本",
       "mods": "模组",
-      "modsHint": "已安装的附魔"
+      "modsHint": "已安装的附魔",
+      "systemRam": "系统内存"
     },
     "roster": {
       "title": "玩家名单",
@@ -743,6 +745,13 @@
       "mods": "管理 Steam Workshop、Nexus 和 UE4SS。",
       "backups": "创建、验证、恢复和导出备份。",
       "firewall": "检查并同步 Windows 防火墙规则。"
+    },
+    "networkLights": {
+      "adminPort": "管理端口",
+      "gamePort": "游戏端口",
+      "hint": "所选服务器端口的实时可访问状态。",
+      "queryPort": "查询端口",
+      "title": "网络状态"
     }
   },
   "mods": {
@@ -1611,7 +1620,11 @@
   },
   "common": {
     "viewAll": "查看全部",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "delete": "删除",
+    "download": "下载",
+    "unknownError": "发生未知错误。",
+    "working": "处理中..."
   },
   "auth": {
     "common": {
@@ -1665,7 +1678,9 @@
         "superAdmin": "首个账户将获得超级管理员权限。",
         "ready": "设置完成后即可立即导入或部署服务器。"
       }
-    }
+    },
+    "brandTagline": "专业的自托管专用服务器管理平台",
+    "loadingCaption": "服务器准备期间可使用 ← → 和空格键..."
   },
   "steamCmdAuth": {
     "title": "Steam 创意工坊访问",

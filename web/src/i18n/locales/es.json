@@ -24,7 +24,8 @@
       "operations": "Operaciones",
       "maintenance": "Mantenimiento",
       "administration": "Administración"
-    }
+    },
+    "donate": "Apoyar el proyecto"
   },
   "topbar": {
     "pages": {
@@ -660,7 +661,8 @@
       "version": "Versión",
       "versionHint": "Compilación del servidor",
       "mods": "Mods",
-      "modsHint": "Encantamientos instalados"
+      "modsHint": "Encantamientos instalados",
+      "systemRam": "RAM del sistema"
     },
     "roster": {
       "title": "Lista de jugadores",
@@ -743,6 +745,13 @@
       "mods": "Administrar Steam Workshop, Nexus y UE4SS.",
       "backups": "Crear, verificar, restaurar y exportar copias.",
       "firewall": "Inspeccionar y sincronizar reglas del Firewall de Windows."
+    },
+    "networkLights": {
+      "adminPort": "Puerto de administración",
+      "gamePort": "Puerto del juego",
+      "hint": "Estado de accesibilidad en tiempo real de los puertos del servidor seleccionado.",
+      "queryPort": "Puerto de consulta",
+      "title": "Estado de red"
     }
   },
   "mods": {
@@ -1611,7 +1620,11 @@
   },
   "common": {
     "viewAll": "Ver todo",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "delete": "Eliminar",
+    "download": "Descargar",
+    "unknownError": "Se produjo un error desconocido.",
+    "working": "Procesando..."
   },
   "auth": {
     "common": {
@@ -1665,7 +1678,9 @@
         "superAdmin": "La primera cuenta recibe permisos de superadministrador.",
         "ready": "Puedes importar o desplegar servidores inmediatamente después de la configuración."
       }
-    }
+    },
+    "brandTagline": "Plataforma profesional autoalojada para gestionar servidores dedicados",
+    "loadingCaption": "Usa ← → y Espacio mientras se prepara el servidor..."
   },
   "steamCmdAuth": {
     "title": "Acceso a Steam Workshop",

@@ -24,7 +24,8 @@
       "operations": "Vorgänge",
       "maintenance": "Wartung",
       "administration": "Administration"
-    }
+    },
+    "donate": "Projekt unterstützen"
   },
   "topbar": {
     "pages": {
@@ -660,7 +661,8 @@
       "version": "Version",
       "versionHint": "Server-Build",
       "mods": "Mods",
-      "modsHint": "Installierte Verzauberungen"
+      "modsHint": "Installierte Verzauberungen",
+      "systemRam": "System-RAM"
     },
     "roster": {
       "title": "Namensliste",
@@ -743,6 +745,13 @@
       "mods": "Steam Workshop, Nexus und UE4SS verwalten.",
       "backups": "Backups erstellen, prüfen, wiederherstellen und exportieren.",
       "firewall": "Windows-Firewall-Regeln prüfen und synchronisieren."
+    },
+    "networkLights": {
+      "adminPort": "Admin-Port",
+      "gamePort": "Spiel-Port",
+      "hint": "Live-Erreichbarkeitsstatus der ausgewählten Server-Ports.",
+      "queryPort": "Query-Port",
+      "title": "Netzwerkstatus"
     }
   },
   "mods": {
@@ -1639,7 +1648,11 @@
   },
   "common": {
     "viewAll": "Alle anzeigen",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "delete": "Löschen",
+    "download": "Herunterladen",
+    "unknownError": "Ein unbekannter Fehler ist aufgetreten.",
+    "working": "Wird ausgeführt..."
   },
   "auth": {
     "common": {
@@ -1693,7 +1706,9 @@
         "superAdmin": "Das erste Konto erhält Super-Admin-Rechte.",
         "ready": "Nach der Einrichtung kannst du Server sofort importieren oder bereitstellen."
       }
-    }
+    },
+    "brandTagline": "Professionelle, selbst gehostete Plattform zur Verwaltung dedizierter Server",
+    "loadingCaption": "Nutze ← → und Leertaste, während der Server vorbereitet wird..."
   },
   "steamCmdAuth": {
     "title": "Steam-Workshop-Zugriff",

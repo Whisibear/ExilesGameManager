@@ -22,7 +22,8 @@
       "operations": "Operations",
       "maintenance": "Maintenance",
       "administration": "Administration"
-    }
+    },
+    "donate": "Support the project"
   },
   "topbar": {
     "pages": {
@@ -316,11 +317,25 @@
       "mods": "Manage Steam Workshop, Nexus, and UE4SS.",
       "backups": "Create, verify, restore, and export backups.",
       "firewall": "Inspect and synchronize Windows Firewall rules."
+    },
+    "networkLights": {
+      "adminPort": "Admin port",
+      "gamePort": "Game port",
+      "hint": "Live reachability status for the selected server ports.",
+      "queryPort": "Query port",
+      "title": "Network status"
+    },
+    "stats": {
+      "systemRam": "System RAM"
     }
   },
   "common": {
     "viewAll": "View all",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "delete": "Delete",
+    "download": "Download",
+    "unknownError": "An unknown error occurred.",
+    "working": "Working..."
   },
   "auth": {
     "common": {
@@ -374,7 +389,9 @@
         "superAdmin": "The first account receives super admin permissions.",
         "ready": "You can import or deploy servers immediately after setup."
       }
-    }
+    },
+    "brandTagline": "Professional self-hosted dedicated server management platform",
+    "loadingCaption": "Use ← → and Space while the server is being prepared..."
   },
   "superAdmin": {
     "diagnostics": {

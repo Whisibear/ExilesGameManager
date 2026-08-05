@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import { authApi } from "@/api";
 import { UNAUTHORIZED_EVENT } from "@/api/httpClient";
 import type { AuthUser } from "@/types/models";
@@ -24,6 +25,7 @@ export function useAuth(): AuthContextValue {
 type Phase = "loading" | "needs-setup" | "needs-login" | "authed";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const [phase, setPhase] = React.useState<Phase>("loading");
   const [user, setUser] = React.useState<AuthUser | null>(null);
 
@@ -81,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   if (phase === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-noise text-parchment-300/50">
-        <SpaceInvadersGame caption="Use ← → and Space while the server is being prepared..." />
+        <SpaceInvadersGame caption={t("auth.loadingCaption")} />
       </div>
     );
   }

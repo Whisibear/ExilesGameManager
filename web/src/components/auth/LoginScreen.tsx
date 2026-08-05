@@ -8,6 +8,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { PublicLanguageSwitcher } from "@/components/layout/PublicLanguageSwitcher";
 
 interface LoginScreenProps {
   onDone: (user: AuthUser) => void;
@@ -57,6 +58,10 @@ export function LoginScreen({ onDone }: LoginScreenProps) {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(124,252,0,0.11),transparent_28rem),radial-gradient(circle_at_80%_20%,rgba(0,212,255,0.13),transparent_34rem),radial-gradient(circle_at_68%_86%,rgba(139,92,246,0.09),transparent_28rem)]" />
       <div className="pointer-events-none absolute inset-0 opacity-[0.14] [background-image:linear-gradient(rgba(0,212,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(0,212,255,0.08)_1px,transparent_1px)] [background-size:48px_48px]" />
 
+      <div className="absolute right-4 top-4 z-30 sm:right-6 sm:top-6">
+        <PublicLanguageSwitcher />
+      </div>
+
       <div className="relative z-10 mx-auto grid min-h-screen w-full max-w-[1500px] lg:grid-cols-[1.08fr_0.92fr]">
         <section className="hidden min-h-screen flex-col justify-between border-r border-[#27303A]/80 px-12 py-12 lg:flex xl:px-20">
           <div>
@@ -73,7 +78,7 @@ export function LoginScreen({ onDone }: LoginScreenProps) {
                   <span className="text-[#00D4FF]">Manager</span>
                 </p>
                 <p className="mt-1 text-[10px] uppercase tracking-[0.22em] text-[#00D4FF]/70">
-                  Professional Self-Hosted Dedicated Server Management Platform
+                  {t("auth.brandTagline")}
                 </p>
               </div>
             </div>

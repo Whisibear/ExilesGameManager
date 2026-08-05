@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.8.1 Public Beta 6
+
+### Global language selection
+
+- Added a language selector to the top-right corner of the login and first-run setup pages.
+- Language selection works before authentication, applies immediately and is remembered in the browser.
+- The authenticated Topbar selector remains synchronized with the saved user preference.
+- Login, setup, loading screen, Sidebar, Topbar, notifications and core navigation labels are validated for all six supported languages.
+- Added translated branding and loading text.
+- Added automated translation-completeness tests for English, German, French, Spanish, Japanese and Simplified Chinese.
+- Updated backend, frontend and installer metadata to `0.8.1-beta.6`.
+
 ## 0.8.1 Public Beta 5 - Native UpdateWorker and Defender hardening
 
 - Replaced the PowerShell automatic-update handoff with `EGMUpdateWorker.exe`.

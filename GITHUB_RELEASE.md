@@ -1,4 +1,4 @@
-# Exiles Game Manager v0.8.1 Public Beta 5
+# Exiles Game Manager v0.8.1 Public Beta 6
 
 Public Beta 5 replaces the PowerShell automatic-update handoff with a dedicated `EGMUpdateWorker.exe`. The worker starts the verified Setup, captures its exit code, writes update diagnostics and restarts EGM after a successful update.
 
@@ -54,7 +54,7 @@ The in-app updater selects the newest supported GitHub release and looks for the
 - Installer, restart, marker and log paths are validated both before EGM closes and inside the native worker.
 - Setup and EGM restart use direct process creation without Windows shell execution.
 - Added fallback diagnostics for errors that occur before the normal worker log can be opened.
-- Version remains `0.8.1-beta.5`, allowing replacement of the current release assets.
+- Version remains `0.8.1-beta.6`, allowing replacement of the current release assets.
 
 
 ## Complete UpdateWorker packaging fix
@@ -68,5 +68,20 @@ The in-app updater selects the newest supported GitHub release and looks for the
 - Added CI packaging artifacts for inspection after every packaging smoke run.
 - Local One-Click Release now validates the same worker-before-installer contract.
 - GitHub source export and publish are blocked when the public CI workflow cannot reproduce the native worker build.
-- Version remains `0.8.1-beta.5`; existing GitHub release assets can be replaced after rebuilding.
+- Version remains `0.8.1-beta.6`; existing GitHub release assets can be replaced after rebuilding.
+
+
+## Global language selection
+
+## 0.8.1 Public Beta 6
+
+### Global language selection
+
+- Added a language selector to the top-right corner of the login and first-run setup pages.
+- Language selection works before authentication, applies immediately and is remembered in the browser.
+- The authenticated Topbar selector remains synchronized with the saved user preference.
+- Login, setup, loading screen, Sidebar, Topbar, notifications and core navigation labels are validated for all six supported languages.
+- Added translated branding and loading text.
+- Added automated translation-completeness tests for English, German, French, Spanish, Japanese and Simplified Chinese.
+- Updated backend, frontend and installer metadata to `0.8.1-beta.6`.
 

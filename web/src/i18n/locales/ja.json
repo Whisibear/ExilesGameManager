@@ -24,7 +24,8 @@
       "operations": "操作",
       "maintenance": "メンテナンス",
       "administration": "管理"
-    }
+    },
+    "donate": "プロジェクトを支援"
   },
   "topbar": {
     "pages": {
@@ -660,7 +661,8 @@
       "version": "バージョン",
       "versionHint": "サーバービルド",
       "mods": "MOD",
-      "modsHint": "導入済みのエンチャント"
+      "modsHint": "導入済みのエンチャント",
+      "systemRam": "システムRAM"
     },
     "roster": {
       "title": "プレイヤー一覧",
@@ -743,6 +745,13 @@
       "mods": "Steam Workshop、Nexus、UE4SS を管理します。",
       "backups": "バックアップの作成、検証、復元、エクスポート。",
       "firewall": "Windows ファイアウォール規則を確認して同期します。"
+    },
+    "networkLights": {
+      "adminPort": "管理ポート",
+      "gamePort": "ゲームポート",
+      "hint": "選択したサーバーポートのリアルタイム到達性ステータスです。",
+      "queryPort": "クエリポート",
+      "title": "ネットワーク状態"
     }
   },
   "mods": {
@@ -1611,7 +1620,11 @@
   },
   "common": {
     "viewAll": "すべて表示",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "delete": "削除",
+    "download": "ダウンロード",
+    "unknownError": "不明なエラーが発生しました。",
+    "working": "処理中..."
   },
   "auth": {
     "common": {
@@ -1665,7 +1678,9 @@
         "superAdmin": "最初のアカウントにスーパー管理者権限が付与されます。",
         "ready": "セットアップ後すぐにサーバーをインポートまたは展開できます。"
       }
-    }
+    },
+    "brandTagline": "プロフェッショナルなセルフホスト型専用サーバー管理プラットフォーム",
+    "loadingCaption": "サーバーの準備中は ← → とスペースキーを使用できます..."
   },
   "steamCmdAuth": {
     "title": "Steam Workshop アクセス",

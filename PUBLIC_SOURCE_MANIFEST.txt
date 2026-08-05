@@ -221,6 +221,7 @@ web/src/components/fantasy/TrafficLight.tsx
 web/src/components/layout/AppShell.tsx
 web/src/components/layout/LanguageSwitcher.tsx
 web/src/components/layout/NotificationBell.tsx
+web/src/components/layout/PublicLanguageSwitcher.tsx
 web/src/components/layout/Sidebar.tsx
 web/src/components/layout/TopBar.tsx
 web/src/components/mods/InstallFromFileDialog.tsx

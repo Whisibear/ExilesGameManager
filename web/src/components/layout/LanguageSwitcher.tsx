@@ -28,7 +28,7 @@ export function LanguageSwitcher() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {SUPPORTED_LANGUAGES.map((lang) => (
-          <DropdownMenuItem key={lang.code} onSelect={() => setLanguage(lang.code)}>
+          <DropdownMenuItem key={lang.code} onSelect={() => { document.documentElement.lang = lang.code; void setLanguage(lang.code); }}>
             <span className="text-base leading-none">{lang.flag}</span>
             <span className="truncate">{lang.nativeName}</span>
             {lang.code === user.language ? <span className="ml-auto text-life-400">✓</span> : null}
