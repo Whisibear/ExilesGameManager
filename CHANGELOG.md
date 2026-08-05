@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.8.1 Public Beta 5 - Native UpdateWorker and Defender hardening
+
+- Replaced the PowerShell automatic-update handoff with `EGMUpdateWorker.exe`.
+- The worker waits for EGM, starts the verified Setup, records the installer exit code, writes update logs and restarts EGM.
+- Removed PowerShell and CMD from the panel update execution chain.
+- Added bounded parent-process waiting and installer-owned shutdown fallback.
+- Disabled UPX compression for the main EGM executable to reduce antivirus heuristic triggers.
+- Added optional Authenticode signing for EGM, UpdateWorker and Setup when a signing certificate is configured.
+- Added build and release validation for the UpdateWorker.
+- Preserved all existing settings, OAuth data, servers, backups, logs and update-history behavior.
+
+## 0.8.1 Public Beta 5
+
+### Automatic updater reliability
+
+- Rebuilt the panel-based automatic update handoff.
+- Removed the parent-process wait loop that could prevent Setup from starting.
+- Removed the additional `cmd.exe / start` launch layer.
+- The verified installer is launched immediately through an independent PowerShell process.
+- EGM verifies that the updater process remains active before closing itself.
+- Added a bootstrap log for PowerShell launch and syntax failures.
+- Added installer PID, exit-code and restart tracking.
+- Failed updates restart the existing EGM installation automatically.
+- Successful updates restart the updated installation exactly once.
+- Settings, OAuth data, managed servers, backups and logs remain preserved.
+
 ## 0.8.1 Public Beta 4 - Automatic updater hand-off hotfix
 
 - Replaced the fragile direct PowerShell detachment with an independent `cmd.exe start` hand-off.

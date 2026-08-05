@@ -144,6 +144,7 @@ requirements.txt
 requirements-build.txt
 requirements-dev.txt
 ruff.toml
+scripts/Build-EGMUpdateWorker.ps1
 scripts/check_app_version.py
 SECURITY.md
 Start_EGM_Backend.ps1
@@ -152,6 +153,7 @@ Start_Exiles_Game_Manager.ps1
 STEAM_WORKSHOP_MIGRATION.md
 support/diagnose-exilesgamemanager.ps1
 THIRD_PARTY_NOTICES.md
+update_worker/EGMUpdateWorker.cs
 version_info.txt
 web/.oxlintrc.json
 web/.prettierignore

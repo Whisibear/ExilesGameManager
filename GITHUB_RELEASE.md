@@ -1,3 +1,23 @@
+# Exiles Game Manager v0.8.1 Public Beta 5
+
+Public Beta 5 replaces the PowerShell automatic-update handoff with a dedicated `EGMUpdateWorker.exe`. The worker starts the verified Setup, captures its exit code, writes update diagnostics and restarts EGM after a successful update.
+
+## Automatic updater
+
+- Native UpdateWorker instead of PowerShell or CMD handoff scripts
+- Bounded wait for the existing EGM process
+- Silent Setup execution and installer exit-code validation
+- Automatic restart after success and fallback restart after failure
+- Worker bootstrap, update and installer logs
+- SHA-256 verification remains mandatory before the worker starts
+
+## Defender hardening
+
+- PyInstaller UPX compression disabled
+- Optional Authenticode signing for EGM, UpdateWorker and Setup
+- One-Click release fails when the UpdateWorker is missing
+- Public source and GitHub publish validation include the worker source and build script
+
 
 # GitHub Beta Release Checklist
 

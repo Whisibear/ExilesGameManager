@@ -66,6 +66,47 @@ function Find-InnoSetupCompiler {
     return $null
 }
 
+
+function Find-SignTool {
+    if (-not [string]::IsNullOrWhiteSpace($env:EGM_SIGNTOOL_PATH) -and (Test-Path -LiteralPath $env:EGM_SIGNTOOL_PATH -PathType Leaf)) {
+        return $env:EGM_SIGNTOOL_PATH
+    }
+    $kitsRoot = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin'
+    if (Test-Path -LiteralPath $kitsRoot -PathType Container) {
+        return Get-ChildItem -LiteralPath $kitsRoot -Filter signtool.exe -Recurse -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match '\x64\signtool.exe$' } |
+            Sort-Object FullName -Descending |
+            Select-Object -ExpandProperty FullName -First 1
+    }
+    return $null
+}
+
+function Sign-BinaryIfConfigured {
+    param([Parameter(Mandatory = $true)][string]$Path)
+    $signTool = Find-SignTool
+    if ([string]::IsNullOrWhiteSpace($signTool)) {
+        Write-Host "[INFO] Code signing skipped (SignTool unavailable): $Path" -ForegroundColor Yellow
+        return
+    }
+    if (-not [string]::IsNullOrWhiteSpace($env:EGM_CODESIGN_PFX)) {
+        $args = @('sign','/fd','SHA256','/td','SHA256','/tr','http://timestamp.digicert.com','/f',$env:EGM_CODESIGN_PFX)
+        if (-not [string]::IsNullOrWhiteSpace($env:EGM_CODESIGN_PASSWORD)) { $args += @('/p',$env:EGM_CODESIGN_PASSWORD) }
+        $args += $Path
+    }
+    elseif (-not [string]::IsNullOrWhiteSpace($env:EGM_CODESIGN_CERT_SHA1)) {
+        $args = @('sign','/fd','SHA256','/td','SHA256','/tr','http://timestamp.digicert.com','/sha1',$env:EGM_CODESIGN_CERT_SHA1,$Path)
+    }
+    else {
+        Write-Host "[INFO] Code signing skipped (no certificate configured): $Path" -ForegroundColor Yellow
+        return
+    }
+    & $signTool @args
+    if ($LASTEXITCODE -ne 0) { throw "Code signing failed for $Path" }
+    & $signTool verify /pa /all $Path
+    if ($LASTEXITCODE -ne 0) { throw "Signature verification failed for $Path" }
+    Write-Host "[OK] Signed: $Path" -ForegroundColor Green
+}
+
 if (-not $SkipFrontend) {
     Write-Step 'Building frontend'
     $npm = (Get-Command npm.cmd -ErrorAction Stop).Source
@@ -125,10 +166,22 @@ Invoke-NativeProcess `
     ) `
     -WorkingDirectory $root
 
+$workerBuildScript = Join-Path $root 'scripts\Build-EGMUpdateWorker.ps1'
+$workerExe = Join-Path $root 'dist\EGMUpdateWorker.exe'
+if (-not (Test-Path -LiteralPath $workerBuildScript -PathType Leaf)) { throw "UpdateWorker build script not found: $workerBuildScript" }
+Write-Step 'Building native EGM UpdateWorker'
+& $workerBuildScript -ProjectRoot $root -OutputPath $workerExe
+if (-not $?) { throw 'UpdateWorker build failed.' }
+
 $standaloneExe = Join-Path $root 'dist\ExilesGameManager.exe'
 if (-not (Test-Path -LiteralPath $standaloneExe -PathType Leaf)) {
     throw "Standalone executable was not produced: $standaloneExe"
 }
+if (-not (Test-Path -LiteralPath $workerExe -PathType Leaf)) {
+    throw "UpdateWorker executable was not produced: $workerExe"
+}
+Sign-BinaryIfConfigured -Path $standaloneExe
+Sign-BinaryIfConfigured -Path $workerExe
 
 $iscc = Find-InnoSetupCompiler
 if ([string]::IsNullOrWhiteSpace($iscc)) {
@@ -171,6 +224,7 @@ $setup = Get-ChildItem -LiteralPath $outputDirectory -Filter '*.exe' -File |
 if ($null -eq $setup) {
     throw "Setup executable was not produced in: $outputDirectory"
 }
+Sign-BinaryIfConfigured -Path $setup.FullName
 
 $hash = (Get-FileHash -LiteralPath $setup.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
 $hashPath = $setup.FullName + '.sha256.txt'

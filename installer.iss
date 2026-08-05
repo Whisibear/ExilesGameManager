@@ -1,6 +1,6 @@
 #define MyAppName "Exiles Game Manager"
-#define MyAppVersion "0.8.1-beta.4"
-#define MyWindowsVersion "0.8.1.4"
+#define MyAppVersion "0.8.1-beta.5"
+#define MyWindowsVersion "0.8.1.5"
 #define MyAppPublisher "Whisibear EGM"
 #define MyAppURL "https://github.com/Whisibear/ExilesGameManager"
 #define MyAppExeName "ExilesGameManager.exe"
@@ -98,6 +98,7 @@ Name: "{commonappdata}\ExilesGameManager\data\steamcmd"; Permissions: users-modi
 
 [Files]
 Source: "dist\ExilesGameManager.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "dist\EGMUpdateWorker.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "ExilesGameManager.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "Install_Prerequisites.ps1"; DestDir: "{tmp}"; Flags: deleteafterinstall
 Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion

@@ -66,7 +66,7 @@ logging.getLogger("uvicorn.access").addFilter(_PollingNoiseFilter())
 
 instance_store.migrate_legacy_single_instance()
 
-app = FastAPI(title="Exiles Game Manager Backend", version="0.8.1-beta.2")
+app = FastAPI(title="Exiles Game Manager Backend", version="0.8.1-beta.5")
 
 
 @app.middleware("http")
