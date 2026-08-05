@@ -1,6 +1,6 @@
 #define MyAppName "Exiles Game Manager"
-#define MyAppVersion "0.8.1-beta.2"
-#define MyWindowsVersion "0.8.1.2"
+#define MyAppVersion "0.8.1-beta.4"
+#define MyWindowsVersion "0.8.1.4"
 #define MyAppPublisher "Whisibear EGM"
 #define MyAppURL "https://github.com/Whisibear/ExilesGameManager"
 #define MyAppExeName "ExilesGameManager.exe"
@@ -34,7 +34,7 @@ WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=admin
-CloseApplications=yes
+CloseApplications=no
 RestartApplications=no
 RestartIfNeededByRun=no
 AlwaysRestart=no
@@ -277,7 +277,43 @@ end;
 procedure StopEGMProcesses();
 var
   ResultCode: Integer;
+  PowerShellExe: String;
+  CommandLine: String;
 begin
+  PowerShellExe := ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe');
+  CommandLine :=
+    '-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "' +
+    '$ErrorActionPreference = ''SilentlyContinue''; ' +
+    '$installDir = [IO.Path]::GetFullPath(''' + ExpandConstant('{app}') + ''').TrimEnd(''\''); ' +
+    '$targets = Get-CimInstance Win32_Process | Where-Object { ' +
+    '($_.Name -ieq ''ExilesGameManager.exe'') -or ' +
+    '(($_.Name -in @(''python.exe'',''pythonw.exe'',''uvicorn.exe'')) -and ' +
+    '(($_.ExecutablePath -and $_.ExecutablePath.StartsWith($installDir,[StringComparison]::OrdinalIgnoreCase)) -or ' +
+    '($_.CommandLine -and $_.CommandLine.IndexOf($installDir,[StringComparison]::OrdinalIgnoreCase) -ge 0))) }; ' +
+    '$targets | ForEach-Object { Stop-Process -Id $_.ProcessId -ErrorAction SilentlyContinue }; ' +
+    'Start-Sleep -Seconds 3; ' +
+    '$targets = Get-CimInstance Win32_Process | Where-Object { ' +
+    '($_.Name -ieq ''ExilesGameManager.exe'') -or ' +
+    '(($_.Name -in @(''python.exe'',''pythonw.exe'',''uvicorn.exe'')) -and ' +
+    '(($_.ExecutablePath -and $_.ExecutablePath.StartsWith($installDir,[StringComparison]::OrdinalIgnoreCase)) -or ' +
+    '($_.CommandLine -and $_.CommandLine.IndexOf($installDir,[StringComparison]::OrdinalIgnoreCase) -ge 0))) }; ' +
+    '$targets | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }; ' +
+    'Start-Sleep -Seconds 2; exit 0"';
+
+  Log('Stopping EGM and EGM-owned backend processes before file replacement.');
+  if not Exec(
+    PowerShellExe,
+    CommandLine,
+    '',
+    SW_HIDE,
+    ewWaitUntilTerminated,
+    ResultCode
+  ) then
+    Log('EGM shutdown helper could not be started.')
+  else
+    Log(Format('EGM shutdown helper returned exit code %d.', [ResultCode]));
+
+  { Last-resort fallback for the main launcher only. }
   Exec(
     ExpandConstant('{sys}\taskkill.exe'),
     '/F /T /IM ExilesGameManager.exe',
@@ -297,7 +333,9 @@ begin
   if CurStep = ssInstall then
   begin
     WizardForm.StatusLabel.Caption := ExpandConstant('{cm:PreparingComponents}');
-    if HasCommandLineSwitch('UPDATE') then
+    if ExistingInstallDetected or
+       HasCommandLineSwitch('UPDATE') or
+       HasCommandLineSwitch('REPAIR') then
       StopEGMProcesses();
   end;
 
@@ -319,19 +357,7 @@ begin
       True
     );
 
-    if (EGMRestartExecutable <> '') and
-       (not EGMRestartLaunched) and
-       FileExists(EGMRestartExecutable) then
-    begin
-      EGMRestartLaunched := True;
-      Exec(
-        EGMRestartExecutable,
-        '',
-        ExtractFileDir(EGMRestartExecutable),
-        SW_SHOW,
-        ewNoWait,
-        ResultCode
-      );
-    end;
+    { Interactive setup launches only from the checked Finish-page [Run] entry.
+      Silent panel updates are restarted by the detached updater. }
   end;
 end;

@@ -4,7 +4,7 @@
     "dashboard": "Tableau de bord",
     "mods": "Mods",
     "control": "Contrôle du serveur",
-    "worldSettings": "Paramètres du monde",
+    "worldSettings": "Server Settings",
     "launcherOptions": "Options de lancement",
     "logs": "Journaux",
     "university": "EGM University",
@@ -41,7 +41,7 @@
         "subtitle": "Décidez du destin de votre royaume"
       },
       "worldSettings": {
-        "title": "Paramètres du monde",
+        "title": "Server Settings",
         "subtitle": "Chaque règle que le fichier de configuration de votre serveur peut exprimer"
       },
       "launcherOptions": {
@@ -638,7 +638,8 @@
       "helpRaw": "Valeur brute avancée de Palworld. Conservez le format existant sauf si vous connaissez la valeur exacte attendue par Palworld.",
       "helpString": "Paramètre texte écrit directement dans PalWorldSettings.ini.",
       "fieldHelpAria": "Aide pour {{label}}"
-    }
+    },
+    "title": "Server Settings"
   },
   "dashboard": {
     "loading": "Consultation de la boule de cristal...",
@@ -745,7 +746,7 @@
     }
   },
   "mods": {
-    "title": "Le Grimoire",
+    "title": "Mods",
     "browseNexus": "Parcourir Nexus Mods",
     "noModsPathBanner": "Aucun dossier Mods n'est encore configuré, les installations de fichiers vérifiées nécessitent donc d'abord une configuration dans Super Admin.",
     "noModsPathCta": "Configurer dans Super Admin",
@@ -1609,7 +1610,8 @@
     "unavailable": "Le serveur de mise à jour est actuellement indisponible."
   },
   "common": {
-    "viewAll": "Tout afficher"
+    "viewAll": "Tout afficher",
+    "refresh": "Refresh"
   },
   "auth": {
     "common": {

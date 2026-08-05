@@ -4,7 +4,7 @@
     "dashboard": "Panel",
     "mods": "Mods",
     "control": "Control del servidor",
-    "worldSettings": "Configuración del mundo",
+    "worldSettings": "Server Settings",
     "launcherOptions": "Opciones de inicio",
     "logs": "Registros",
     "university": "EGM University",
@@ -41,7 +41,7 @@
         "subtitle": "Decide el destino de tu reino"
       },
       "worldSettings": {
-        "title": "Configuración del mundo",
+        "title": "Server Settings",
         "subtitle": "Cada regla que el archivo de configuración de tu servidor puede expresar"
       },
       "launcherOptions": {
@@ -638,7 +638,8 @@
       "helpRaw": "Valor bruto avanzado de Palworld. Conserva el formato existente a menos que conozcas el valor exacto que espera Palworld.",
       "helpString": "Ajuste de texto escrito directamente en PalWorldSettings.ini.",
       "fieldHelpAria": "Ayuda de {{label}}"
-    }
+    },
+    "title": "Server Settings"
   },
   "dashboard": {
     "loading": "Consultando la bola de cristal...",
@@ -745,7 +746,7 @@
     }
   },
   "mods": {
-    "title": "El Grimorio",
+    "title": "Mods",
     "browseNexus": "Explorar Nexus Mods",
     "noModsPathBanner": "Aún no se ha configurado ninguna carpeta de mods, por lo que las instalaciones de archivos verificados requieren primero configurarlo en Super Admin.",
     "noModsPathCta": "Configurarlo en Super Admin",
@@ -1609,7 +1610,8 @@
     "unavailable": "El servidor de actualización no está disponible en este momento."
   },
   "common": {
-    "viewAll": "Ver todo"
+    "viewAll": "Ver todo",
+    "refresh": "Refresh"
   },
   "auth": {
     "common": {

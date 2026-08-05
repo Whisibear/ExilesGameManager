@@ -6,7 +6,7 @@ from typing import Any
 import httpx
 from fastapi import HTTPException
 
-from app.services import secure_store
+from app.services import nexus_identity, secure_store
 
 _STORE_NAME = "nexus_oauth"
 _CLIENT_ID = "exiles_game_manager_egm"
@@ -35,6 +35,9 @@ def save_oauth_record(token: dict[str, Any], account: dict[str, Any]) -> None:
             "username": account.get("name"),
             "userId": account.get("user_id"),
             "isPremium": bool(account.get("is_premium")),
+            "membershipRoles": list(account.get("membership_roles") or []),
+            "premiumExpiry": account.get("premium_expiry"),
+            "lastAccountSyncAt": int(time.time()),
         },
     )
 
@@ -50,6 +53,9 @@ def account_view() -> dict[str, Any]:
         "username": username,
         "userId": record.get("userId"),
         "isPremium": bool(record.get("isPremium")),
+        "membershipRoles": list(record.get("membershipRoles") or []),
+        "premiumExpiry": record.get("premiumExpiry"),
+        "lastAccountSyncAt": record.get("lastAccountSyncAt"),
         "avatarInitial": username[:1].upper(),
     }
 
@@ -78,17 +84,54 @@ async def _refresh(record: dict[str, Any]) -> dict[str, Any]:
         disconnect()
         raise HTTPException(status_code=400, detail="Nexus Mods returned an invalid refresh response.")
     expires_in = int(token.get("expires_in") or 3600)
+    account = nexus_identity.account_from_access_token(str(access_token))
     record.update(
         {
             "accessToken": access_token,
             "refreshToken": token.get("refresh_token") or refresh_token,
             "tokenType": token.get("token_type") or "Bearer",
             "expiresAt": int(time.time()) + max(60, expires_in - 30),
+            "username": account.get("name") or record.get("username"),
+            "userId": account.get("user_id") or record.get("userId"),
+            "isPremium": bool(account.get("is_premium")),
+            "membershipRoles": list(account.get("membership_roles") or []),
+            "premiumExpiry": account.get("premium_expiry"),
+            "lastAccountSyncAt": int(time.time()),
         }
     )
     secure_store.save(_STORE_NAME, record)
     return record
 
+
+async def synchronize_account(*, force_refresh: bool = False) -> dict[str, Any]:
+    record = get_record()
+    if not record.get("connected") or not record.get("accessToken"):
+        return {"connected": False}
+
+    now = int(time.time())
+    last_sync = int(record.get("lastAccountSyncAt") or 0)
+    should_refresh = (
+        force_refresh
+        or int(record.get("expiresAt") or 0) <= now
+        or now - last_sync >= 60
+    )
+
+    if should_refresh and record.get("refreshToken"):
+        record = await _refresh(record)
+    else:
+        account = nexus_identity.account_from_access_token(str(record["accessToken"]))
+        record.update(
+            {
+                "username": account.get("name") or record.get("username"),
+                "userId": account.get("user_id") or record.get("userId"),
+                "isPremium": bool(account.get("is_premium")),
+                "membershipRoles": list(account.get("membership_roles") or []),
+                "premiumExpiry": account.get("premium_expiry"),
+            }
+        )
+        secure_store.save(_STORE_NAME, record)
+
+    return account_view()
 
 async def require_access_token() -> str:
     record = get_record()
@@ -100,9 +143,10 @@ async def require_access_token() -> str:
 
 
 async def require_premium_access_token() -> str:
+    account = await synchronize_account(force_refresh=True)
     record = get_record()
     token = await require_access_token()
-    if not record.get("isPremium"):
+    if not account.get("isPremium") or not record.get("isPremium"):
         raise HTTPException(
             status_code=403,
             detail="Nexus Mods Premium is required for automatic direct downloads.",

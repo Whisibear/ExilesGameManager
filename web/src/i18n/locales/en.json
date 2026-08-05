@@ -4,7 +4,7 @@
     "dashboard": "Dashboard",
     "mods": "Mods",
     "control": "Server Control",
-    "worldSettings": "World Settings",
+    "worldSettings": "Server Settings",
     "launcherOptions": "Launcher Options",
     "logs": "Logs",
     "university": "EGM University",
@@ -39,7 +39,7 @@
         "subtitle": "Start, stop, restart, update, save, and communicate with the selected server"
       },
       "worldSettings": {
-        "title": "World Settings",
+        "title": "Server Settings",
         "subtitle": "Every rule your server's config file can express"
       },
       "launcherOptions": {
@@ -319,7 +319,8 @@
     }
   },
   "common": {
-    "viewAll": "View all"
+    "viewAll": "View all",
+    "refresh": "Refresh"
   },
   "auth": {
     "common": {
@@ -473,6 +474,35 @@
       "deploymentDisabled": "Disabled",
       "restartFailed": "Server restart failed",
       "deploymentPending": "Deployment pending"
+    },
+    "nexusDownloaded": {
+      "title": "Downloaded Nexus Mods",
+      "rescan": "Rescan Nexus Mods",
+      "description": "Approved Nexus Mods are detected from all supported Palworld locations: UE4SS Mods, PAK ~mods, LogicMods, Workshop PAKs and PalMod packages. Uninstall removes the exact files installed for the selected mod.",
+      "empty": "No downloaded Nexus Mods were detected for this server.",
+      "installed": "Installed",
+      "downloaded": "Downloaded",
+      "missing": "Files missing",
+      "openNexus": "Open on Nexus Mods",
+      "uninstall": "Uninstall",
+      "uninstallDialogTitle": "Uninstall this Nexus mod?",
+      "uninstallDialogDescription": "{{name}} will be removed from the selected server, including its installed files and downloaded archive.",
+      "uninstalledTitle": "Nexus mod uninstalled",
+      "uninstalledMessage": "{{name}} was removed from the selected server.",
+      "uninstallFailedTitle": "Nexus uninstall failed",
+      "configured": "Configured — restart required"
+    },
+    "nexusWishlist": {
+      "title": "Nexus Mods Wishlist",
+      "browse": "Browse Nexus Mods",
+      "description": "Nexus Mods requests waiting for approval are listed here. Approved and installed mods appear separately under Downloaded Nexus Mods.",
+      "empty": "No Nexus Mods are waiting for approval."
+    },
+    "title": "Mods",
+    "runtime": {
+      "verified": "Runtime verified",
+      "warning": "Runtime unconfirmed",
+      "failed": "Runtime failed"
     }
   },
   "updates": {
@@ -502,5 +532,8 @@
     "preparePhase": "Preparing installation…",
     "closePhase": "Closing EGM and starting installer…",
     "completed": "Update completed successfully."
+  },
+  "worldSettings": {
+    "title": "Server Settings"
   }
 }

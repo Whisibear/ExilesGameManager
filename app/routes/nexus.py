@@ -13,7 +13,7 @@ router = APIRouter()
 # remain encrypted in the local secure store and are never returned to the frontend.
 @router.get("/account")
 async def get_account() -> dict[str, Any]:
-    return nexus_session.account_view()
+    return await nexus_session.synchronize_account(force_refresh=True)
 
 
 @router.post("/oauth/start", dependencies=[Depends(require_super_admin)])

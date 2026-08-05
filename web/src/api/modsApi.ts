@@ -8,6 +8,7 @@ import type {
   SteamWorkshopResult,
   WorkshopDetails,
   WorkshopCacheItem,
+  DownloadedNexusMod,
   WorkshopUpdateCheck,
   VerifiedFileInstall,
 } from "@/types/models";
@@ -147,6 +148,10 @@ export async function checkWorkshopUpdates(): Promise<WorkshopUpdateCheck> {
   return api.get<WorkshopUpdateCheck>("/api/mods/workshop/check-updates");
 }
 
+export async function checkAllModUpdates(): Promise<WorkshopUpdateCheck & { steam?: WorkshopUpdateCheck; nexus?: WorkshopUpdateCheck }> {
+  return api.get<WorkshopUpdateCheck & { steam?: WorkshopUpdateCheck; nexus?: WorkshopUpdateCheck }>("/api/mods/check-all-updates");
+}
+
 export async function updateAllWorkshopMods(): Promise<import("@/types/models").WorkshopUpdateAllResult> {
   return api.post<import("@/types/models").WorkshopUpdateAllResult>("/api/mods/workshop/update-all");
 }
@@ -162,4 +167,13 @@ export async function getWorkshopCache(): Promise<WorkshopCacheItem[]> {
 
 export async function installWorkshopFromCache(workshopId: string): Promise<Mod[]> {
   return api.post<Mod[]>(`/api/mods/workshop/cache/${workshopId}/install`);
+}
+
+
+export async function getDownloadedNexusMods(): Promise<DownloadedNexusMod[]> {
+  return api.get<DownloadedNexusMod[]>("/api/mods/from-nexus/downloaded");
+}
+
+export async function uninstallDownloadedNexusMod(modId: string): Promise<DownloadedNexusMod[]> {
+  return api.delete<DownloadedNexusMod[]>(`/api/mods/from-nexus/downloaded/${encodeURIComponent(modId)}`);
 }

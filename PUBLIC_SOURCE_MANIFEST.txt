@@ -58,12 +58,15 @@ app/services/local_config.py
 app/services/login_throttle.py
 app/services/manual_mod_service.py
 app/services/mod_installer.py
+app/services/mod_runtime_verifier.py
 app/services/mod_wishlist.py
 app/services/mods_shared.py
 app/services/mods_store.py
 app/services/native_dialog.py
 app/services/network_verification.py
 app/services/nexus_client.py
+app/services/nexus_identity.py
+app/services/nexus_inventory.py
 app/services/nexus_mod_service.py
 app/services/nexus_oauth.py
 app/services/nexus_session.py
@@ -93,6 +96,7 @@ app/services/system_settings.py
 app/services/task_queue.py
 app/services/ue4ss_installer.py
 app/services/university.py
+app/services/update_history.py
 app/services/upnp.py
 app/services/windows_subprocess.py
 app/storage.py

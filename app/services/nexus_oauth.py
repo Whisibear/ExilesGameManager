@@ -14,7 +14,7 @@ from typing import Any
 
 import httpx
 
-from app.services import nexus_session
+from app.services import nexus_identity, nexus_session
 
 logger = logging.getLogger("egm.nexus_oauth")
 
@@ -56,70 +56,6 @@ def start() -> dict[str, str]:
     return {"requestId": request_id, "authorizeUrl": f"{AUTHORIZE_URL}?{query}"}
 
 
-
-def _decode_jwt_payload(access_token: str) -> dict[str, Any]:
-    """Decode the OAuth JWT payload returned directly by Nexus Mods.
-
-    The token is obtained over TLS from Nexus' registered OAuth token endpoint.
-    This function uses its claims only for account display metadata; API
-    authorization continues to rely on the bearer token itself.
-    """
-    parts = access_token.split(".")
-    if len(parts) != 3:
-        raise RuntimeError("Nexus Mods returned an access token in an unexpected format.")
-
-    encoded_payload = parts[1]
-    padding = "=" * (-len(encoded_payload) % 4)
-    try:
-        payload = base64.urlsafe_b64decode(encoded_payload + padding)
-        decoded = json.loads(payload.decode("utf-8"))
-    except (ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise RuntimeError("Nexus Mods returned an unreadable access token.") from exc
-
-    if not isinstance(decoded, dict):
-        raise RuntimeError("Nexus Mods returned an invalid access-token payload.")
-    return decoded
-
-
-def _oauth_account_from_token(access_token: str) -> dict[str, Any]:
-    """Map Nexus' OAuth JWT claims to EGM's existing account model."""
-    claims = _decode_jwt_payload(access_token)
-    user = claims.get("user")
-    if not isinstance(user, dict):
-        user = {}
-
-    username = (
-        user.get("username")
-        or user.get("name")
-        or claims.get("preferred_username")
-        or claims.get("username")
-        or claims.get("name")
-    )
-    user_id = (
-        user.get("user_id")
-        or user.get("id")
-        or claims.get("user_id")
-        or claims.get("sub")
-    )
-
-    premium_values = (
-        user.get("is_premium"),
-        user.get("isPremium"),
-        user.get("premium"),
-        claims.get("is_premium"),
-        claims.get("isPremium"),
-        claims.get("premium"),
-    )
-    is_premium = any(value is True or str(value).lower() in {"1", "true", "premium"} for value in premium_values)
-
-    if not username:
-        username = "Nexus Mods user"
-
-    return {
-        "name": str(username),
-        "user_id": user_id,
-        "is_premium": is_premium,
-    }
 
 
 def _safe_oauth_error(response: httpx.Response) -> str:
@@ -201,12 +137,15 @@ async def complete_callback(code: str | None, state: str | None, error: str | No
             )
             raise RuntimeError("Nexus token response did not contain an access token.")
 
-        account = _oauth_account_from_token(str(access_token))
+        account = nexus_identity.account_from_access_token(str(access_token))
         logger.info(
-            "Nexus OAuth token accepted for account=%s user_id=%s premium_claim=%s",
+            "Nexus OAuth token accepted for account=%s user_id=%s premium=%s roles=%s claim_keys=%s user_claim_keys=%s",
             account.get("name"),
             account.get("user_id"),
             account.get("is_premium"),
+            account.get("membership_roles"),
+            account.get("claim_keys"),
+            account.get("user_claim_keys"),
         )
         nexus_session.save_oauth_record(token, account)
         session.update({"status": "connected"})

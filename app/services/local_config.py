@@ -5,6 +5,19 @@ from app.services import instance_storage
 
 _STORE_NAME = "config"
 
+def pal_directory(server_path: str | Path) -> Path:
+    path = Path(server_path)
+    if path.name.lower() == "pal":
+        return path
+    if (path / "Binaries" / "Win64").exists():
+        return path
+    return path / "Pal"
+
+
+def server_root_directory(server_path: str | Path) -> Path:
+    pal = pal_directory(server_path)
+    return pal.parent if pal.name.lower() == "pal" else Path(server_path)
+
 
 def default_mods_path(server_path: str) -> str:
     # UE4SS's mods live under a nested "ue4ss" folder (TICKET-0142/0143) -
@@ -13,7 +26,7 @@ def default_mods_path(server_path: str) -> str:
     # require the Palworld-specific UE4SS fork's newer Win64/ue4ss/Mods
     # layout, and having leftover files at the old flat location actively
     # conflicts with it (see ue4ss_installer.py).
-    return str(Path(server_path) / "Pal" / "Binaries" / "Win64" / "ue4ss" / "Mods")
+    return str(pal_directory(server_path) / "Binaries" / "Win64" / "ue4ss" / "Mods")
 
 
 def default_pak_mods_path(server_path: str) -> str:
@@ -22,7 +35,7 @@ def default_pak_mods_path(server_path: str) -> str:
     # own pak system from this folder (TICKET-0143). The "~" prefix is the
     # convention Palworld/UE modding uses to force this folder's paks to be
     # read before the base game's, so overrides actually take effect.
-    return str(Path(server_path) / "Pal" / "Content" / "Paks" / "~mods")
+    return str(pal_directory(server_path) / "Content" / "Paks" / "~mods")
 
 
 def _get_config(instance_id: str) -> dict[str, Any]:

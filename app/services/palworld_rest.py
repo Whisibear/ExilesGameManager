@@ -80,7 +80,7 @@ async def _request(
 
     if resp.status_code == 401:
         raise PalworldRestAuthError(
-            "Palworld REST API authentication failed. Check the Admin Password in World Settings."
+            "Palworld REST API authentication failed. Check the Admin Password in Server Settings."
         )
     if resp.status_code >= 400:
         detail = resp.text.strip() or f"HTTP {resp.status_code}"

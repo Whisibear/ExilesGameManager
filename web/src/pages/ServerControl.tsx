@@ -194,14 +194,14 @@ export default function ServerControl() {
   async function handleCheckModUpdates() {
     setBusyAction("check-mod-updates");
     try {
-      const check = await modsApi.checkWorkshopUpdates();
+      const check = await modsApi.checkAllModUpdates();
       if (check.updatesAvailable > 0) {
         notifications.warning({
           title: t("serverControl.notifications.modUpdatesAvailableTitle", {
             defaultValue: "MOD UPDATES AVAILABLE",
           }),
           message: t("serverControl.notifications.modUpdatesAvailableMessage", {
-            defaultValue: "{{count}} Workshop mod update(s) found. Open Mods to install them.",
+            defaultValue: "{{count}} Steam Workshop/Nexus mod update(s) found. Open Mods to review them.",
             count: check.updatesAvailable,
           }),
         });
@@ -213,11 +213,11 @@ export default function ServerControl() {
           message:
             check.checked > 0
               ? t("serverControl.notifications.modsUpToDateMessage", {
-                  defaultValue: "Checked {{count}} Workshop mod(s).",
+                  defaultValue: "Checked {{count}} installed Steam Workshop and Nexus mod(s).",
                   count: check.checked,
                 })
               : t("serverControl.notifications.noWorkshopModsMessage", {
-                  defaultValue: "No Steam Workshop mods are installed.",
+                  defaultValue: "No update-trackable Steam Workshop or Nexus mods are installed.",
                 }),
         });
       }

@@ -97,6 +97,24 @@ def oauth_dir() -> Path:
     return path
 
 
+
+def update_data_dir() -> Path:
+    """Persistent per-user update metadata and logs."""
+    path = local_app_data_root() / "updates"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def update_history_path() -> Path:
+    return update_data_dir() / "update_history.json"
+
+
+def update_runtime_log_path() -> Path:
+    return update_data_dir() / "update_runtime.log"
+
+
+def last_update_result_path() -> Path:
+    return update_data_dir() / "last_update_result.json"
 def downloads_dir() -> Path:
     path = local_app_data_root() / "downloads"
     path.mkdir(parents=True, exist_ok=True)
@@ -128,6 +146,7 @@ def ensure_local_app_layout() -> dict[str, Path]:
         "temp": temp_dir(),
         "backups": backups_dir(),
         "data": local_app_data_root() / "data",
+        "updates": update_data_dir(),
     }
     for path in directories.values():
         path.mkdir(parents=True, exist_ok=True)

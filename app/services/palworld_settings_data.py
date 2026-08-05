@@ -1,4 +1,4 @@
-"""Curated field metadata for the World Settings editor.
+"""Curated field metadata for the Server Settings editor.
 
 Palworld's ~100 OptionSettings fields are read/written generically by
 palworld_settings.py (type inferred from formatting, not hardcoded) - this
@@ -620,7 +620,7 @@ def _group_for_key(key: str) -> str:
 
 # Fields with their own dedicated control elsewhere (Super Admin's port
 # management, Launcher Options' public IP override) rather than the generic
-# World Settings editor, so editing a server's port/IP only ever has the one
+# Server Settings editor, so editing a server's port/IP only ever has the one
 # place - hidden from read_all_settings, but write_settings still accepts
 # PublicPort, since that dedicated control uses the same write path under the
 # hood. PublicIP has no such write path today (Launcher Options passes

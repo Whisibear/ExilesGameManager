@@ -74,7 +74,7 @@ def read_public_port(server_path: Path) -> int | None:
 
 def effective_game_port(server_path: Path, fallback_port: int) -> int:
     """The port a server will actually bind to: whatever's live in its ini,
-    since that's what World Settings edits (falling back to the port an
+    since that's what Server Settings edits (falling back to the port an
     instance was created/deployed with only if the ini doesn't exist yet or
     has no PublicPort field). Read-only - use enforce_game_port() at launch
     time, where writing that fallback into the ini is actually wanted."""
@@ -294,7 +294,7 @@ def _decode_value(raw_value: str, field_type: str) -> Any:
 
 
 def _parse_decimal_value(value: Any) -> float:
-    """Parse a World Settings decimal entered with either a dot or comma.
+    """Parse a Server Settings decimal entered with either a dot or comma.
 
     Palworld's INI format always uses a dot, but administrators commonly enter
     localized values such as ``0,5`` on German Windows systems.  Accept both

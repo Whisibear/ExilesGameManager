@@ -527,6 +527,23 @@ async def _dispatch(ctx: TaskContext, action: str, instance_id: str | None, payl
         result = await asyncio.to_thread(firewall.delete_rules, [r.name for r in firewall.instance_rules(instance)])
         ctx.progress(95, "Firewall rules removed")
         return result
+    if action == "mods.check_updates":
+        from app.services import nexus_mod_service, steam_workshop
+        instance = await _require_instance(instance_id)
+        ctx.progress(5, "Checking Steam Workshop mods")
+        ctx.log("Combined mod update check started for Steam Workshop and Nexus Mods.")
+        steam = await steam_workshop.check_updates(instance)
+        ctx.progress(50, "Checking Nexus Mods")
+        nexus = await nexus_mod_service.check_updates(instance)
+        total = int(steam.get("updatesAvailable") or 0) + int(nexus.get("updatesAvailable") or 0)
+        checked = int(steam.get("checked") or 0) + int(nexus.get("checked") or 0)
+        ctx.log(f"Combined check complete: {checked} checked, {total} update(s) available.")
+        ctx.progress(100, "Mod update check complete")
+        return {"checked": checked, "updatesAvailable": total, "upToDate": total == 0, "steam": steam, "nexus": nexus}
+    if action == "mods.verify_startup":
+        from app.services import mod_runtime_verifier
+        instance = await _require_instance(instance_id)
+        return await mod_runtime_verifier.verify_after_start(ctx, instance)
     if action in {"workshop.install", "workshop.update"}:
         from app.services import steam_workshop
         instance = await _require_instance(instance_id)

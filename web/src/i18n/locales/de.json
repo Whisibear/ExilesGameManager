@@ -4,7 +4,7 @@
     "dashboard": "Übersicht",
     "mods": "Mods",
     "control": "Serversteuerung",
-    "worldSettings": "Welteinstellungen",
+    "worldSettings": "Server Settings",
     "launcherOptions": "Startoptionen",
     "logs": "Protokolle",
     "university": "EGM University",
@@ -41,7 +41,7 @@
         "subtitle": "Den ausgewählten Server starten, stoppen, neu starten, aktualisieren, speichern und verwalten"
       },
       "worldSettings": {
-        "title": "Welteinstellungen",
+        "title": "Server Settings",
         "subtitle": "Jede Regel, die die Konfigurationsdatei deines Servers ausdrücken kann"
       },
       "launcherOptions": {
@@ -638,7 +638,8 @@
       "helpRaw": "Erweiterter Palworld-Rohwert. Behalte das vorhandene Format bei, außer du kennst den genauen Wert, den Palworld erwartet.",
       "helpString": "Textfeld, das direkt in PalWorldSettings.ini geschrieben wird.",
       "fieldHelpAria": "Hilfe zu {{label}}"
-    }
+    },
+    "title": "Server Settings"
   },
   "dashboard": {
     "loading": "Die Kristallkugel wird befragt...",
@@ -745,7 +746,7 @@
     }
   },
   "mods": {
-    "title": "Das Grimoire",
+    "title": "Mods",
     "browseNexus": "Nexus Mods durchsuchen",
     "noModsPathBanner": "Es ist noch kein Mods-Ordner konfiguriert, daher muss zuerst Super Admin eingerichtet werden, damit verifizierte Datei-Installationen funktionieren.",
     "noModsPathCta": "In Super Admin einrichten",
@@ -917,6 +918,34 @@
       "title": "Steam Workshop Wishlist",
       "description": "Steam Workshop requests are managed separately from Nexus Mods. The super admin downloads approved items through SteamCMD and installs them for the selected server.",
       "empty": "No Steam Workshop mods are waiting for approval."
+    },
+    "nexusDownloaded": {
+      "title": "Heruntergeladene Nexus Mods",
+      "rescan": "Nexus Mods neu einlesen",
+      "description": "Genehmigte Nexus Mods werden aus allen unterstützten Palworld-Pfaden erkannt: UE4SS Mods, PAK ~mods, LogicMods, Workshop-PAKs und PalMod-Pakete. Deinstallieren entfernt exakt die Dateien der ausgewählten Mod.",
+      "empty": "Für diesen Server wurden keine heruntergeladenen Nexus Mods gefunden.",
+      "installed": "Installiert",
+      "downloaded": "Heruntergeladen",
+      "missing": "Dateien fehlen",
+      "openNexus": "Auf Nexus Mods öffnen",
+      "uninstall": "Deinstallieren",
+      "uninstallDialogTitle": "Diesen Nexus Mod deinstallieren?",
+      "uninstallDialogDescription": "{{name}} wird einschließlich installierter Dateien und heruntergeladenem Archiv vom ausgewählten Server entfernt.",
+      "uninstalledTitle": "Nexus Mod deinstalliert",
+      "uninstalledMessage": "{{name}} wurde vom ausgewählten Server entfernt.",
+      "uninstallFailedTitle": "Nexus-Deinstallation fehlgeschlagen",
+      "configured": "Konfiguriert — Neustart erforderlich"
+    },
+    "nexusWishlist": {
+      "title": "Nexus Mods Wunschliste",
+      "browse": "Nexus Mods durchsuchen",
+      "description": "Nexus-Mod-Anfragen, die auf Genehmigung warten, werden hier angezeigt. Genehmigte und installierte Mods erscheinen separat unter Heruntergeladene Nexus Mods.",
+      "empty": "Keine Nexus Mods warten auf Genehmigung."
+    },
+    "runtime": {
+      "verified": "Laufzeit bestätigt",
+      "warning": "Laufzeit nicht bestätigt",
+      "failed": "Laufzeitprüfung fehlgeschlagen"
     }
   },
   "serverControl": {
@@ -1609,7 +1638,8 @@
     "unavailable": "Update-Server ist derzeit nicht verfügbar."
   },
   "common": {
-    "viewAll": "Alle anzeigen"
+    "viewAll": "Alle anzeigen",
+    "refresh": "Refresh"
   },
   "auth": {
     "common": {

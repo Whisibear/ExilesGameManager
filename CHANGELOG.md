@@ -1,6 +1,125 @@
 # Changelog
 
-## 0.8.1-beta.2 - Reliable automatic update workflow
+## 0.8.1 Public Beta 4
+
+### Highlights
+- One-click GitHub updater with SHA-256 verification and automatic restart
+- Complete update logging, history and diagnostics
+- Installer Update / Repair workflow improvements
+- Automatic preservation of user, server and configuration data
+- Nexus Mods OAuth integration with Premium detection
+- Nexus download, install, rescan and uninstall improvements
+- Persistent Nexus metadata (Mod ID, File ID, author, version and install paths)
+- Runtime verification for UE4SS, Steam Workshop, PalMod, PAK and LogicMods
+- Improved Steam Workshop deployment verification
+- Activity Center and Task Queue separation
+- World Settings renamed to Server Settings
+- The Grimoire renamed to Mods
+- Refresh label fixed
+- Manual -publicip launcher option
+- Numerous stability, deployment and UI fixes
+
+
+
+## 0.8.1-beta.3 - Persistent Nexus metadata and honest runtime verification
+
+- Added persistent per-server Nexus metadata preserving Mod ID, file ID, name, author, version, image, URL and exact installed paths.
+- Nexus rescans now merge filesystem discoveries with existing metadata instead of replacing records with `Unknown`.
+- Added duplicate merging by Nexus ID and installed paths.
+- Added persistent per-mod runtime verification shown in Downloaded Nexus Mods.
+- UE4SS is verified only when UE4SS.log explicitly references the mod.
+- PalMod and Steam Workshop packages are verified through InstallManifest.json.
+- PAK and LogicMods remain runtime-unconfirmed when only file presence can be proven.
+- Task Queue and Activity keep separate technical and user-facing verification records.
+
+## 0.8.1-beta.3 - Unified mod verification, update checks and interface cleanup
+
+- Renamed **World Settings** to **Server Settings** throughout the interface.
+- Renamed the Mods page header from **The Grimoire** to **Mods** and removed the duplicate top **Browse Steam Workshop** button.
+- Fixed the Activity Center action label showing `common.refresh`; it now displays **Refresh**.
+- Changed `-publicip` to explicit manual configuration. EGM no longer detects or inserts a public IP automatically; the launch flag is only emitted when enabled and a value was entered by the administrator.
+- Added a combined Steam Workshop and Nexus Mods update check. Steam Workshop timestamps are compared through Steam's published-file metadata and Nexus versions through the registered Nexus metadata service.
+- Combined mod checks now run as persistent Task Queue operations and also write detailed Activity Center entries.
+- Added automatic post-start mod verification as a separate Task Queue operation after every manual server start or restart.
+- Verification checks that the Palworld process remains online, validates deployed files, checks Palworld `InstallManifest.json` evidence for managed mods, and reads UE4SS startup evidence from `UE4SS.log`.
+- Added explicit Activity Center entries for every verified mod and a final verification summary.
+- Fixed Setup launching EGM before the Finish button. Interactive Setup now launches only through the checked **Launch Exiles Game Manager** option after **Finish**, preventing duplicate browser tabs. Silent panel updates remain controlled by the detached updater.
+
+## 0.8.1-beta.3 - Final Nexus deployment, migration and uninstall hardening
+
+- Aligned Nexus deployment with the supported Palworld layouts: UE4SS mods, regular PAK mods, Blueprint/LogicMods, Workshop PAKs and Info.json-based PalMod packages.
+- Fixed malformed legacy paths such as `Pal/Content/Paks/~mods/LogicMods` and nested `Pal/Content/Paks/...` wrappers created by earlier beta builds.
+- Added automatic, narrowly scoped migration of legacy Nexus PAK files to their correct Palworld destination.
+- Fixed PAK installation so structural archive folders such as `Pal`, `Content`, `Paks` and `LogicMods` are never shown as individual mods.
+- Direct LogicMods PAK files are now installed and inventoried individually instead of being wrapped in generic folders.
+- Existing tracked Nexus metadata is retained during rescans, preserving Nexus ID, file ID, author, version, image and Nexus URL.
+- Added collision-safe persistent IDs for recovered Nexus inventory records.
+- Added exact sidecar-aware tracking for `.pak`, `.utoc`, `.ucas` and `.sig` files.
+- Uninstall now requires the selected Palworld server to be stopped before removing memory-mapped mod files.
+- Added strict deletion boundaries that prevent EGM from deleting Palworld base files or entire shared mod roots.
+- Added explicit protection for `Pal-WindowsServer.pak` and related core PAK files.
+- Improved locked-file and stale-record errors with actionable rescan and server-stop instructions.
+- Extended Nexus rescan, installation, migration and uninstall diagnostics in the application log and Activity Center.
+
+## 0.8.1-beta.3 - Nexus PAK and LogicMods lifecycle fix
+
+- Fixed approved Nexus PAK and LogicMods downloads being installed but omitted from Downloaded Nexus Mods.
+- Added archive-layout detection for `~mods`, `LogicMods` and `~WorkshopMods`.
+- PAK content is now installed into its actual Palworld destination instead of nested generic folders such as `Pal` or `LogicMods`.
+- Added disk rescanning for UE4SS, regular PAK, LogicMods, Workshop PAK and PalMod installations.
+- Added exact installed-path tracking and complete uninstall cleanup for every supported Nexus mod type.
+- Existing incorrectly installed PAK folders are detected during rescan so they can be removed and reinstalled correctly.
+
+## 0.8.1-beta.3 - UE4SS rescan and installer automation fix
+
+- Fixed the Downloaded Nexus Mods endpoint not invoking the UE4SS directory scanner.
+- Fixed imported paths already ending in `Pal`, preventing invalid `Pal/Pal/Binaries` lookups.
+- Fixed PalModSettings and Workshop path resolution for both supported server import formats.
+- Replaced Inno Setup Restart Manager closing with deterministic EGM-specific process shutdown.
+- Manual Update and Repair now close EGM automatically and restart it after completion.
+- Panel auto-update remains silent and restarts EGM exactly once.
+
+## 0.8.1-beta.3 - Nexus UE4SS inventory and uninstall fix
+
+- Downloaded Nexus Mods now scans the real UE4SS directory under `Pal/Binaries/Win64/ue4ss/Mods`.
+- Added activation-state detection from UE4SS `mods.txt`, `mods.json` and `enabled.txt`.
+- Added disk recovery for Nexus/third-party UE4SS mod folders that were installed successfully but were missing from EGM's saved inventory.
+- Excluded UE4SS built-in framework folders from the Nexus inventory.
+- Nexus UE4SS uninstall now removes the mod directory and its activation entries from `mods.txt` and `mods.json`.
+- PalMod packages remain managed separately through `Mods/Workshop` and `PalModSettings.ini`.
+
+## 0.8.1-beta.3 - Nexus PalMod deployment fix
+
+- Nexus archives containing `Info.json` now use Palworld's official server mod workflow.
+- Packages are copied to `Mods/Workshop`, added to `PalModSettings.ini`, and deployed by Palworld after a server restart.
+- Added `Configured — restart required` status and marker-based rescanning.
+- Nexus uninstall removes the ActiveModList entry, source package, deployed files, cached archive and server record.
+- Legacy Nexus archives without `Info.json` remain supported through direct UE4SS/PAK installation.
+
+## 0.8.1-beta.3 - Downloaded Nexus Mods management
+
+- Added a dedicated `Downloaded Nexus Mods` section to the Mods page.
+- Approved and installed Nexus Mods are now listed separately for the currently selected server.
+- Added installation-state, Nexus ID, version, author and install-path information.
+- Added a dedicated Nexus Mod uninstall workflow that removes installed files, the downloaded archive and the saved server entry.
+- Separated pending Nexus wishlist requests from installed Nexus Mods.
+
+## 0.8.1-beta.3 - Nexus Premium membership synchronization fix
+
+- Fixed Nexus Mods Premium and Premium Trial accounts being displayed as Free members.
+- EGM now reads Nexus membership roles and Premium expiry information from the current OAuth access token.
+- Nexus account membership is synchronized after login, when the integration panel is opened and immediately before a Premium direct download.
+- OAuth tokens and refresh tokens remain encrypted locally and are never returned to the frontend or included in public source exports.
+
+## 0.8.1-beta.3 - Complete update logging and history
+
+- Added detailed logging for every automatic update phase, including release detection, download, SHA-256 verification, installer hand-off, installation result and automatic restart.
+- Added a detailed `New EGM Version Installed` Activity entry after a successful update.
+- Added persistent update history and last-result files for support and diagnostics.
+- Added update completion and failure details to diagnostic packages.
+- Confirmed that Update, Repair and panel-based automatic updates preserve settings, OAuth data, managed servers and backups.
+
+## 0.8.1-beta.3 - Reliable automatic update workflow
 
 - Added a compact `New update available` card directly left of the notification bell.
 - Added live download, verification and installation-preparation progress.
@@ -8,7 +127,7 @@
 - Added an Activity entry and notification after a successful update restart.
 - Fixed cases where EGM closed before the installer was reliably launched.
 
-## 0.8.1-beta.2 - One-click automatic updates
+## 0.8.1-beta.3 - One-click automatic updates
 
 - Added a prominent update notification next to the notification bell.
 - Added an update confirmation dialog with installed and available version information.

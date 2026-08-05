@@ -2,9 +2,9 @@ import * as React from "react";
 import { Link } from "react-router-dom";
 import { Reorder } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { BookOpen, ScrollText, TriangleAlert, RefreshCw, Boxes, Download, CheckCircle2, HardDrive, CircleAlert } from "lucide-react";
+import { BookOpen, ScrollText, TriangleAlert, RefreshCw, Boxes, Download, CheckCircle2, HardDrive, CircleAlert, ExternalLink, Trash2 } from "lucide-react";
 import { modsApi, serverSettingsApi } from "@/api";
-import type { Mod, ModsPathInfo, ModWishlistRequest, WorkshopCacheItem } from "@/types/models";
+import type { Mod, ModsPathInfo, ModWishlistRequest, WorkshopCacheItem, DownloadedNexusMod } from "@/types/models";
 import { Panel } from "@/components/ui/panel";
 import { ActionButton } from "@/components/ui/egm-button";
 import { Modal } from "@/components/ui/modal";
@@ -36,6 +36,10 @@ export default function Mods() {
   const [workshopCache, setWorkshopCache] = React.useState<WorkshopCacheItem[]>([]);
   const [cacheLoading, setCacheLoading] = React.useState(false);
   const [cacheBusyId, setCacheBusyId] = React.useState<string | null>(null);
+  const [downloadedNexusMods, setDownloadedNexusMods] = React.useState<DownloadedNexusMod[]>([]);
+  const [nexusInventoryLoading, setNexusInventoryLoading] = React.useState(false);
+  const [nexusInventoryBusyId, setNexusInventoryBusyId] = React.useState<string | null>(null);
+  const [nexusUninstallTarget, setNexusUninstallTarget] = React.useState<DownloadedNexusMod | null>(null);
   const seenCacheIds = React.useRef<Set<string>>(new Set());
   const notifications = useNotifications();
   const { user } = useAuth();
@@ -63,6 +67,18 @@ export default function Mods() {
     }
   }, [notifications, t, user.role]);
 
+const refreshDownloadedNexusMods = React.useCallback(async () => {
+    if (document.visibilityState !== "visible") return;
+    setNexusInventoryLoading(true);
+    try {
+      setDownloadedNexusMods(await modsApi.getDownloadedNexusMods());
+    } catch {
+      setDownloadedNexusMods([]);
+    } finally {
+      setNexusInventoryLoading(false);
+    }
+  }, []);
+
   React.useEffect(() => {
     modsApi.getMods().then((m) => {
       setMods(m);
@@ -71,6 +87,7 @@ export default function Mods() {
     modsApi.getModsPath().then(setModsPathInfo);
     modsApi.getWishlist().then(setWishlist).catch(() => setWishlist([]));
     void refreshWorkshopCache(false);
+    void refreshDownloadedNexusMods();
     serverSettingsApi
       .getSettings()
       .then(({ fields }) => {
@@ -78,7 +95,7 @@ export default function Mods() {
         setAllowMods(field ? Boolean(field.value) : null);
       })
       .catch(() => setAllowMods(null));
-  }, [refreshWorkshopCache]);
+  }, [refreshDownloadedNexusMods, refreshWorkshopCache]);
 
   React.useEffect(() => {
     if (user.role !== "super_admin") return;
@@ -86,14 +103,42 @@ export default function Mods() {
       void refreshWorkshopCache(true);
     }, 5000);
     const onVisibility = () => {
-      if (document.visibilityState === "visible") void refreshWorkshopCache(true);
+      if (document.visibilityState === "visible") {
+        void refreshWorkshopCache(true);
+        void refreshDownloadedNexusMods();
+      }
     };
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
       window.clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [refreshWorkshopCache, user.role]);
+  }, [refreshDownloadedNexusMods, refreshWorkshopCache, user.role]);
+
+async function handleUninstallDownloadedNexusMod() {
+    if (!nexusUninstallTarget) return;
+    setNexusInventoryBusyId(nexusUninstallTarget.id);
+    try {
+      const inventory = await modsApi.uninstallDownloadedNexusMod(nexusUninstallTarget.id);
+      setDownloadedNexusMods(inventory);
+      setMods(await modsApi.getMods());
+      notifications.warning({
+        title: t("mods.nexusDownloaded.uninstalledTitle", { defaultValue: "Nexus mod uninstalled" }),
+        message: t("mods.nexusDownloaded.uninstalledMessage", {
+          defaultValue: "{{name}} was removed from the selected server.",
+          name: nexusUninstallTarget.name,
+        }),
+      });
+    } catch (error) {
+      notifications.error({
+        title: t("mods.nexusDownloaded.uninstallFailedTitle", { defaultValue: "Nexus uninstall failed" }),
+        message: error instanceof Error ? error.message : "Unknown error.",
+      });
+    } finally {
+      setNexusInventoryBusyId(null);
+      setNexusUninstallTarget(null);
+    }
+  }
 
   async function handleInstallCached(item: WorkshopCacheItem) {
     setCacheBusyId(item.workshopId);
@@ -117,7 +162,7 @@ export default function Mods() {
     }
   }
 
-  // Synchronized with World Settings' "Allow Client Mods" field - both read
+  // Synchronized with Server Settings' "Allow Client Mods" field - both read
   // and write the same bAllowClientMod ini value through the same endpoint,
   // so toggling here or there stays in sync with no separate storage.
   async function handleToggleAllowMods(checked: boolean) {
@@ -216,6 +261,7 @@ export default function Mods() {
     try {
       const updated = await modsApi.removeMod(removeTarget.id);
       setMods(updated);
+      await refreshDownloadedNexusMods();
       notifications.warning({
         title: t("mods.notifications.removedTitle", { defaultValue: "Mod removed" }),
         message: t("mods.notifications.removedMessage", {
@@ -240,7 +286,7 @@ export default function Mods() {
     <div className="space-y-6">
       <Panel
         icon={<BookOpen />}
-        title={t("mods.title", { defaultValue: "The Grimoire" })}
+        title={t("mods.title", { defaultValue: "Mods" })}
         actions={
           <div className="flex items-center gap-2">
             <ActionButton
@@ -252,11 +298,6 @@ export default function Mods() {
             >
               Update All Mods
             </ActionButton>
-            <QuestSpotlight stepId={["wishlist_one", "wishlist_mod"]}>
-              <ActionButton variant="mana" size="sm" icon={<ScrollText />} onClick={() => setBrowseOpen(true)}>
-                {t("mods.browseWorkshop", { defaultValue: "Browse Steam Workshop" })}
-              </ActionButton>
-            </QuestSpotlight>
           </div>
         }
       >
@@ -294,7 +335,7 @@ export default function Mods() {
               label={t("mods.allowMods", { defaultValue: "Allow Mods" })}
               description={t("mods.allowModsDescription", {
                 defaultValue:
-                  "Lets players with client mods enabled join. Synced with World Settings' Allow Client Mods field.",
+                  "Lets players with client mods enabled join. Synced with Server Settings' Allow Client Mods field.",
               })}
             />
           </QuestSpotlight>
@@ -450,43 +491,192 @@ export default function Mods() {
         )}
       </Panel>
 
-      <Panel
-        icon={<Boxes />}
-        title="Nexus Mods"
+<Panel
+        icon={<HardDrive />}
+        title={t("mods.nexusDownloaded.title", { defaultValue: "Downloaded Nexus Mods" })}
         actions={
-          <ActionButton variant="mana" size="sm" icon={<ScrollText />} onClick={() => setNexusBrowseOpen(true)}>
-            Browse Nexus Mods
+          <ActionButton
+            variant="mana"
+            size="sm"
+            icon={<RefreshCw className={nexusInventoryLoading ? "animate-spin" : ""} />}
+            onClick={() => void refreshDownloadedNexusMods()}
+            disabled={nexusInventoryLoading}
+          >
+            {t("mods.nexusDownloaded.rescan", { defaultValue: "Rescan Nexus Mods" })}
           </ActionButton>
         }
       >
         <p className="mb-5 text-sm leading-relaxed text-parchment-300/65">
-          Nexus Mods use the classic UE4SS/Lua/LogicMods installation path and are managed separately from Steam Workshop mods. Connect Nexus Mods in Super Admin before direct downloads.
+          {t("mods.nexusDownloaded.description", {
+            defaultValue: "Approved Nexus Mods downloaded and installed for the currently selected server are listed here. Uninstall removes the installed files, downloaded archive and saved server entry.",
+          })}
         </p>
-        {pendingNexusRequests.length === 0 && nexusMods.length === 0 ? (
+
+        {downloadedNexusMods.length === 0 ? (
           <div className="rounded-md border border-stone-700/70 bg-stone-900/25 px-4 py-8 text-center text-sm text-parchment-300/45">
-            No Nexus Mods installed or waiting for approval.
+            {t("mods.nexusDownloaded.empty", { defaultValue: "No downloaded Nexus Mods were detected for this server." })}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {downloadedNexusMods.map((item) => {
+              const statusLabel =
+                item.status === "installed"
+                  ? t("mods.nexusDownloaded.installed", { defaultValue: "Installed" })
+                  : item.status === "configured"
+                    ? t("mods.nexusDownloaded.configured", { defaultValue: "Configured — restart required" })
+                    : item.status === "downloaded"
+                      ? t("mods.nexusDownloaded.downloaded", { defaultValue: "Downloaded" })
+                      : t("mods.nexusDownloaded.missing", { defaultValue: "Files missing" });
+
+              return (
+                <div
+                  key={item.id}
+                  className="flex flex-col gap-4 rounded-lg border border-stone-700/70 bg-stone-950/35 p-4 lg:flex-row lg:items-center"
+                >
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    {item.previewUrl ? (
+                      <img
+                        src={item.previewUrl}
+                        alt=""
+                        className="h-16 w-16 rounded-md border border-stone-700 object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-16 w-16 items-center justify-center rounded-md border border-stone-700 bg-stone-900/70">
+                        <Download className="h-6 w-6 text-life-300" />
+                      </div>
+                    )}
+
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate font-semibold text-parchment-100">{item.name}</p>
+                        {item.nexusUrl && (
+                          <a
+                            href={item.nexusUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-life-300 transition hover:text-life-200"
+                            title={t("mods.nexusDownloaded.openNexus", { defaultValue: "Open on Nexus Mods" })}
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        )}
+                      </div>
+                      <p className="text-xs text-parchment-300/55">
+                        {item.author} · Nexus ID {item.modId || "—"} · v{item.version}
+                      </p>
+                      <p className="mt-1 truncate text-xs text-parchment-300/45">
+                        {item.packageName || item.folderName || item.installedPath || item.downloadedFile || item.installKind}
+                      </p>
+                      <p className="mt-1 text-[11px] text-parchment-300/40">
+                        {item.installMode}
+                        {item.installKind === "ue4ss" ? " — UE4SS Mods directory" : ""}
+                        {item.deploymentMessage ? ` — ${item.deploymentMessage}` : ""}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-3 lg:justify-end">
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs ${
+                        item.status === "installed"
+                          ? "border-life-500/40 text-life-300"
+                          : item.status === "configured"
+                            ? "border-gold-500/40 text-gold-300"
+                            : item.status === "downloaded"
+                              ? "border-mana-500/40 text-mana-300"
+                              : "border-blood-500/40 text-blood-300"
+                      }`}
+                    >
+                      {item.status === "installed" ? (
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                      ) : item.status === "configured" ? (
+                        <RefreshCw className="h-3.5 w-3.5" />
+                      ) : item.status === "downloaded" ? (
+                        <Download className="h-3.5 w-3.5" />
+                      ) : (
+                        <CircleAlert className="h-3.5 w-3.5" />
+                      )}
+                      {statusLabel}
+                    </span>
+
+                    {item.runtimeVerification && (
+                      <span
+                        className={`inline-flex max-w-[360px] items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs ${
+                          item.runtimeVerification.state === "verified"
+                            ? "border-life-500/40 text-life-300"
+                            : item.runtimeVerification.state === "warning"
+                              ? "border-gold-500/40 text-gold-300"
+                              : "border-blood-500/40 text-blood-300"
+                        }`}
+                        title={`${item.runtimeVerification.evidence} Confidence: ${item.runtimeVerification.confidence}`}
+                      >
+                        {item.runtimeVerification.state === "verified"
+                          ? t("mods.runtime.verified", { defaultValue: "Runtime verified" })
+                          : item.runtimeVerification.state === "warning"
+                            ? t("mods.runtime.warning", { defaultValue: "Runtime unconfirmed" })
+                            : t("mods.runtime.failed", { defaultValue: "Runtime failed" })}
+                      </span>
+                    )}
+
+                    <ActionButton
+                      variant="danger"
+                      size="sm"
+                      icon={<Trash2 />}
+                      onClick={() => setNexusUninstallTarget(item)}
+                      disabled={nexusInventoryBusyId === item.id}
+                    >
+                      {nexusInventoryBusyId === item.id
+                        ? t("common.working", { defaultValue: "Working..." })
+                        : t("mods.nexusDownloaded.uninstall", { defaultValue: "Uninstall" })}
+                    </ActionButton>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Panel>
+
+      <Panel
+        icon={<Boxes />}
+        title={t("mods.nexusWishlist.title", { defaultValue: "Nexus Mods Wishlist" })}
+        actions={
+          <ActionButton variant="mana" size="sm" icon={<ScrollText />} onClick={() => setNexusBrowseOpen(true)}>
+            {t("mods.nexusWishlist.browse", { defaultValue: "Browse Nexus Mods" })}
+          </ActionButton>
+        }
+      >
+        <p className="mb-5 text-sm leading-relaxed text-parchment-300/65">
+          {t("mods.nexusWishlist.description", {
+            defaultValue: "Nexus Mods requests waiting for approval are listed here. Approved and installed mods appear separately under Downloaded Nexus Mods.",
+          })}
+        </p>
+        {pendingNexusRequests.length === 0 ? (
+          <div className="rounded-md border border-stone-700/70 bg-stone-900/25 px-4 py-8 text-center text-sm text-parchment-300/45">
+            {t("mods.nexusWishlist.empty", { defaultValue: "No Nexus Mods are waiting for approval." })}
           </div>
         ) : (
           <div className="space-y-4">
             {pendingNexusRequests.map((request) => (
               <PendingModCard key={request.id} request={request} />
             ))}
-            <Reorder.Group axis="y" values={nexusMods} onReorder={handleReorder} className="space-y-4">
-              {nexusMods.map((mod) => (
-                <ModCard
-                  key={mod.id}
-                  mod={mod}
-                  onToggle={handleToggle}
-                  onRemove={setRemoveTarget}
-                  onRequestUpdate={handleRequestUpdate}
-                  updateRequested={wishlist.some((r) => r.nexusModId === mod.sourceModId)}
-                  busy={busyId === mod.id}
-                />
-              ))}
-            </Reorder.Group>
           </div>
         )}
       </Panel>
+
+<Modal
+        open={!!nexusUninstallTarget}
+        onOpenChange={(open) => !open && setNexusUninstallTarget(null)}
+        tone="danger"
+        title={t("mods.nexusDownloaded.uninstallDialogTitle", { defaultValue: "Uninstall this Nexus mod?" })}
+        description={t("mods.nexusDownloaded.uninstallDialogDescription", {
+          defaultValue: "{{name}} will be removed from the selected server, including its installed files and downloaded archive.",
+          name: nexusUninstallTarget?.name,
+        })}
+        confirmLabel={t("mods.nexusDownloaded.uninstall", { defaultValue: "Uninstall" })}
+        onConfirm={handleUninstallDownloadedNexusMod}
+        confirming={nexusInventoryBusyId === nexusUninstallTarget?.id}
+      />
 
       <Modal
         open={!!removeTarget}

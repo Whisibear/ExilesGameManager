@@ -4,7 +4,7 @@
     "dashboard": "仪表盘",
     "mods": "模组",
     "control": "服务器控制",
-    "worldSettings": "世界设置",
+    "worldSettings": "Server Settings",
     "launcherOptions": "启动选项",
     "logs": "日志",
     "university": "EGM University",
@@ -41,7 +41,7 @@
         "subtitle": "掌控你领地的命运"
       },
       "worldSettings": {
-        "title": "世界设置",
+        "title": "Server Settings",
         "subtitle": "你服务器配置文件所能表达的每一条规则"
       },
       "launcherOptions": {
@@ -638,7 +638,8 @@
       "helpRaw": "Palworld的高级原始值。除非你确切知道Palworld期望的值，否则请保留现有格式。",
       "helpString": "直接写入PalWorldSettings.ini的文本设置。",
       "fieldHelpAria": "{{label}}的帮助说明"
-    }
+    },
+    "title": "Server Settings"
   },
   "dashboard": {
     "loading": "正在请示水晶球...",
@@ -745,7 +746,7 @@
     }
   },
   "mods": {
-    "title": "魔法书",
+    "title": "Mods",
     "browseNexus": "浏览Nexus Mods",
     "noModsPathBanner": "尚未配置模组文件夹，因此经过验证的文件安装需要先在超级管理员中完成设置。",
     "noModsPathCta": "在超级管理员中设置",
@@ -1609,7 +1610,8 @@
     "unavailable": "更新服务器当前不可用。"
   },
   "common": {
-    "viewAll": "查看全部"
+    "viewAll": "查看全部",
+    "refresh": "Refresh"
   },
   "auth": {
     "common": {

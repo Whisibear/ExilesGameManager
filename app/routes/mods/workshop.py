@@ -72,6 +72,19 @@ async def install_workshop_from_cache(workshop_id: str) -> list[dict[str, Any]]:
     except (steam_workshop.WorkshopError, RuntimeError) as exc:
         raise HTTPException(status_code=getattr(exc, "status_code", 500), detail=getattr(exc, "message", str(exc))) from exc
 
+@router.get("/check-all-updates", dependencies=[Depends(require_super_admin)])
+async def check_all_mod_updates() -> dict[str, Any]:
+    instance = require_active_instance()
+    try:
+        return await task_queue.enqueue_and_wait(
+            "mods.check_updates",
+            instance_id=instance["id"],
+            title="Check Steam and Nexus mod updates",
+        )
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/workshop/check-updates", dependencies=[Depends(require_super_admin)])
 async def check_workshop_updates() -> dict[str, Any]:
     instance = require_active_instance()

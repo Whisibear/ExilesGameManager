@@ -140,8 +140,8 @@ COURSES: dict[str, dict[str, Any]] = {
             ),
             (
                 "world_settings",
-                "Learn the World Settings rule",
-                "Stop the server before editing World Settings; changes take effect after it starts again.",
+                "Learn the Server Settings rule",
+                "Stop the server before editing Server Settings; changes take effect after it starts again.",
                 "/world-settings",
             ),
         ),

@@ -7,7 +7,7 @@ import psutil
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from app.services import activity_log, instance_store, mods_store, palworld_rest, palworld_settings, process_manager, server_update
+from app.services import activity_log, instance_store, mods_store, palworld_rest, palworld_settings, process_manager, server_update, task_queue
 from app.services.palworld_rest import PalworldRestError
 from app.services.process_manager import ProcessError
 from app.services.steamcmd import SteamCmdError
@@ -114,6 +114,12 @@ async def start_server() -> dict[str, Any]:
         await asyncio.to_thread(process_manager.start, instance)
     except ProcessError as e:
         raise HTTPException(status_code=400, detail=e.message)
+    task_queue.enqueue(
+        "mods.verify_startup",
+        instance_id=instance["id"],
+        title="Verify mods after server start",
+    )
+    activity_log.log("info", instance["name"], "Mod startup verification queued in Task Queue.")
     return await _status_view_async(instance)
 
 
@@ -146,6 +152,12 @@ async def restart_server() -> dict[str, Any]:
         await asyncio.to_thread(process_manager.start, instance)
     except ProcessError as e:
         raise HTTPException(status_code=400, detail=e.message)
+    task_queue.enqueue(
+        "mods.verify_startup",
+        instance_id=instance["id"],
+        title="Verify mods after server start",
+    )
+    activity_log.log("info", instance["name"], "Mod startup verification queued in Task Queue.")
     return await _status_view_async(instance)
 
 

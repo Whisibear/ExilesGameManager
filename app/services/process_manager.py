@@ -54,6 +54,10 @@ def get_last_saved(instance_id: str) -> str | None:
     return _last_saved_at.get(instance_id)
 
 
+def get_started_at(instance_id: str) -> float | None:
+    return _started_at.get(instance_id)
+
+
 def _exe_path(instance: dict[str, Any]) -> Path:
     return Path(instance["serverPath"]) / "PalServer.exe"
 
@@ -206,11 +210,11 @@ def start(instance: dict[str, Any]) -> None:
         if instance.get("communityServer"):
             launch_args.append("-publiclobby")
         if instance.get("usePublicIpOverride"):
-            public_ip_override = _public_ip_override_value()
+            public_ip_override = str(instance.get("publicIpOverride") or "").strip()
             if public_ip_override:
                 launch_args.append(f"-publicip={public_ip_override}")
             else:
-                logger.warning("process_manager: -publicip override enabled, but no public IP could be detected")
+                logger.warning("process_manager: -publicip enabled without a manually configured value")
         if instance.get("usePublicPortOverride"):
             launch_args.append(f"-publicport={game_port}")
         if instance.get("jsonLogFormat"):

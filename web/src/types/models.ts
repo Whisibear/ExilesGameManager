@@ -318,6 +318,9 @@ export interface NexusAccount {
   username?: string;
   userId?: number;
   isPremium?: boolean;
+  membershipRoles?: string[];
+  premiumExpiry?: number | string | null;
+  lastAccountSyncAt?: number | null;
   avatarInitial?: string;
 }
 
@@ -376,6 +379,44 @@ export interface NexusModPage {
   totalCount: number;
 }
 
+export interface DownloadedNexusMod {
+  id: string;
+  modId: number;
+  fileId?: number | null;
+  name: string;
+  author: string;
+  version: string;
+  description: string;
+  previewUrl?: string | null;
+  nexusUrl?: string | null;
+  status: "installed" | "configured" | "downloaded" | "missing";
+  enabled: boolean;
+  installKind: string;
+  installMode: string;
+  packageName?: string | null;
+  sourcePath?: string | null;
+  deployedPath?: string | null;
+  configured: boolean;
+  deploymentStatus: string;
+  deploymentMessage?: string | null;
+  recoveredFromDisk?: boolean;
+  folderName?: string | null;
+  installedPath?: string | null;
+  installedPaths?: string[];
+  downloadedFile?: string | null;
+  archiveAvailable: boolean;
+  sizeBytes: number;
+  loadPriority: number;
+  installedAt?: string | null;
+  runtimeVerification?: {
+    state: "verified" | "warning" | "failed";
+    evidence: string;
+    confidence: "high" | "medium" | "low";
+    checkedAt: string;
+    paths: string[];
+  } | null;
+}
+
 export interface NexusModFile {
   fileId: number;
   name: string;
@@ -418,6 +459,7 @@ export interface ServerInstance {
   noAsyncLoadingThread: boolean;
   useMultithreadForDs: boolean;
   usePublicIpOverride: boolean;
+  publicIpOverride: string;
   usePublicPortOverride: boolean;
   useQueryPort: boolean;
   performanceFlags: boolean;

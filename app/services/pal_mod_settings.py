@@ -10,13 +10,17 @@ WORKSHOP_ROOT_KEY = "WorkshopRootDir"
 ACTIVE_KEY = "ActiveModList"
 CONFIG_VERSION_KEY = "ConfigVersion"
 
+def _server_root(server_path: str | Path) -> Path:
+    path = Path(server_path)
+    return path.parent if path.name.lower() == "pal" else path
+
 
 def settings_path(server_path: str | Path) -> Path:
-    return Path(server_path) / "Mods" / "PalModSettings.ini"
+    return _server_root(server_path) / "Mods" / "PalModSettings.ini"
 
 
 def workshop_root(server_path: str | Path) -> Path:
-    return Path(server_path) / "Mods" / "Workshop"
+    return _server_root(server_path) / "Mods" / "Workshop"
 
 
 def _read_lines(path: Path) -> list[str]:

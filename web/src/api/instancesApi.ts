@@ -43,6 +43,7 @@ export interface LaunchOptionsParams {
   useMultithreadForDs: boolean;
   publicLobby: boolean;
   usePublicIpOverride: boolean;
+  publicIpOverride: string;
   usePublicPortOverride: boolean;
   useQueryPort: boolean;
 }

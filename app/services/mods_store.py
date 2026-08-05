@@ -1,4 +1,4 @@
-import time
+from uuid import uuid4
 from typing import Any
 
 from app.services import instance_storage
@@ -19,4 +19,4 @@ def sorted_mods(mods: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def new_id(prefix: str) -> str:
-    return f"{prefix}-{int(time.time() * 1000)}"
+    return f"{prefix}-{uuid4().hex}"

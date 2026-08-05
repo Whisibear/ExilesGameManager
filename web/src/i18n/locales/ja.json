@@ -4,7 +4,7 @@
     "dashboard": "ダッシュボード",
     "mods": "MOD",
     "control": "サーバー操作",
-    "worldSettings": "ワールド設定",
+    "worldSettings": "Server Settings",
     "launcherOptions": "起動オプション",
     "logs": "ログ",
     "university": "EGM University",
@@ -41,7 +41,7 @@
         "subtitle": "あなたの領地の運命を統べる"
       },
       "worldSettings": {
-        "title": "ワールド設定",
+        "title": "Server Settings",
         "subtitle": "サーバー設定ファイルが表現できるすべてのルール"
       },
       "launcherOptions": {
@@ -638,7 +638,8 @@
       "helpRaw": "Palworldの高度な生の値です。Palworldが期待する正確な値がわからない限り、既存の形式を維持してください。",
       "helpString": "PalWorldSettings.iniに直接書き込まれるテキスト設定です。",
       "fieldHelpAria": "{{label}}のヘルプ"
-    }
+    },
+    "title": "Server Settings"
   },
   "dashboard": {
     "loading": "水晶玉に問い合わせています...",
@@ -745,7 +746,7 @@
     }
   },
   "mods": {
-    "title": "魔導書",
+    "title": "Mods",
     "browseNexus": "Nexus Modsを閲覧",
     "noModsPathBanner": "MODフォルダがまだ設定されていないため、検証済みファイルインストールにはまずスーパー管理者による設定が必要です。",
     "noModsPathCta": "スーパー管理者で設定する",
@@ -1609,7 +1610,8 @@
     "unavailable": "更新サーバーは現在利用できません。"
   },
   "common": {
-    "viewAll": "すべて表示"
+    "viewAll": "すべて表示",
+    "refresh": "Refresh"
   },
   "auth": {
     "common": {

@@ -47,6 +47,7 @@ export default function LauncherFlags() {
         | "useMultithreadForDs"
         | "communityServer"
         | "usePublicIpOverride"
+        | "publicIpOverride"
         | "usePublicPortOverride"
         | "useQueryPort"
       >
@@ -70,6 +71,8 @@ export default function LauncherFlags() {
           "usePublicIpOverride" in nextOptions
             ? Boolean(nextOptions.usePublicIpOverride)
             : instance.usePublicIpOverride,
+        publicIpOverride:
+          "publicIpOverride" in nextOptions ? String(nextOptions.publicIpOverride ?? "").trim() : instance.publicIpOverride,
         usePublicPortOverride:
           "usePublicPortOverride" in nextOptions
             ? Boolean(nextOptions.usePublicPortOverride)
@@ -121,7 +124,6 @@ export default function LauncherFlags() {
     setQueryPort(Number.isNaN(parsed) ? null : parsed);
   }
 
-  const publicIp = networkStatus?.externalIp ?? "";
   const publicPort = networkStatus?.port ?? instance?.effectiveGamePort ?? instance?.gamePort ?? "";
   const publicPortNumber = typeof publicPort === "number" ? publicPort : parseInt(String(publicPort), 10);
   const queryPortMatchesGame = queryPort !== null && queryPort === publicPortNumber;
@@ -220,11 +222,19 @@ export default function LauncherFlags() {
               })}
               className="border-0 bg-transparent p-0"
             />
-            <div className={instance.usePublicIpOverride ? "opacity-60" : "opacity-35"}>
+            <div className={instance.usePublicIpOverride ? "opacity-100" : "opacity-45"}>
               <Label htmlFor="flag-public-ip-value" className="text-[11px]">
-                {t("launcherOptions.superAdminPublicIp", { defaultValue: "Super Admin public IP" })}
+                {t("launcherOptions.manualPublicIp", { defaultValue: "Public IP (manual entry)" })}
               </Label>
-              <Input id="flag-public-ip-value" value={publicIp || unavailable} disabled className="mt-1 font-mono" />
+              <Input
+                id="flag-public-ip-value"
+                value={instance.publicIpOverride ?? ""}
+                placeholder="203.0.113.10"
+                disabled={saving || !instance.usePublicIpOverride}
+                className="mt-1 font-mono"
+                onChange={(event) => setInstance({ ...instance, publicIpOverride: event.target.value })}
+                onBlur={() => void saveLaunchOptions({ publicIpOverride: instance.publicIpOverride })}
+              />
             </div>
           </div>
           <div className="space-y-3 rounded-md border border-stone-700 bg-abyss-950/40 p-4">

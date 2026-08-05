@@ -39,3 +39,19 @@ async def get_nexus_mod_files(nexus_mod_id: int) -> list[dict[str, Any]]:
 async def install_from_nexus(nexus_mod_id: int, file_id: int | None = None) -> list[dict[str, Any]]:
     instance = require_active_instance()
     return await task_queue.enqueue_and_wait("nexus.install", instance_id=instance["id"], payload={"nexusModId": nexus_mod_id, "fileId": file_id}, title="Install Nexus mod")
+
+
+
+@router.get("/from-nexus/downloaded")
+async def list_downloaded_nexus_mods() -> list[dict[str, Any]]:
+    instance = require_active_instance()
+    return nexus_mod_service.downloaded_nexus_mods(instance)
+
+
+@router.delete(
+    "/from-nexus/downloaded/{mod_id}",
+    dependencies=[Depends(require_super_admin)],
+)
+async def uninstall_downloaded_nexus_mod(mod_id: str) -> list[dict[str, Any]]:
+    instance = require_active_instance()
+    return nexus_mod_service.uninstall_downloaded_nexus_mod(instance, mod_id)

@@ -16,7 +16,7 @@ from typing import Any, Callable
 import httpx
 
 from app.paths import cache_dir, data_dir, is_frozen
-from app.services import app_event_log, notification_center
+from app.services import app_event_log, notification_center, update_history
 from app.version import (
     APP_CHANNEL,
     APP_VERSION,
@@ -48,6 +48,11 @@ _INSTALL_STATE: dict[str, Any] = {
 }
 
 
+
+def _log_update_step(level: str, message: str, **details: Any) -> None:
+    update_history.append_runtime_log(level, message, **details)
+    logger_method = getattr(logger, level.lower(), logger.info)
+    logger_method("%s | %s", message, details if details else "")
 def _set_install_state(
     phase: str,
     progress: int,
@@ -290,6 +295,10 @@ $installer = {_powershell_single_quote(str(installer))}
 $restartExe = {_powershell_single_quote(str(executable))}
 $marker = {_powershell_single_quote(str(marker))}
 $version = {_powershell_single_quote(version)}
+$fromVersion = {_powershell_single_quote(APP_VERSION)}
+$installerName = {_powershell_single_quote(installer.name)}
+$sha256 = {_powershell_single_quote(hashlib.sha256(installer.read_bytes()).hexdigest())}
+$startedAt = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
 
 while (Get-Process -Id $parentPid -ErrorAction SilentlyContinue) {{
     Start-Sleep -Milliseconds 250
@@ -301,6 +310,7 @@ $arguments = @(
     '/VERYSILENT',
     '/SUPPRESSMSGBOXES',
     '/NORESTART',
+    '/NORESTARTEGM',
     '/CLOSEAPPLICATIONS',
     '/FORCECLOSEAPPLICATIONS',
     '/SP-'
@@ -318,6 +328,11 @@ try {{
 $success = ($exitCode -eq 0)
 $result = @{{
     version = $version
+    fromVersion = $fromVersion
+    installer = $installerName
+    sha256 = $sha256
+    sha256Verified = $true
+    startedAt = $startedAt
     success = $success
     exitCode = $exitCode
     error = $errorMessage
@@ -365,9 +380,15 @@ def _launch_handoff(script_path: Path) -> None:
 
 async def _run_install() -> None:
     try:
+        started_monotonic = time.monotonic()
+        started_at = time.time()
+        previous_version = APP_VERSION
+        _log_update_step("info", "Update requested", currentVersion=previous_version, channel=APP_CHANNEL, source="github")
         _set_install_state("checking", 3, "Checking the GitHub release…")
+        _log_update_step("info", "Checking GitHub release", repository=GITHUB_REPOSITORY)
         status = await get_status(force=True)
         version = str(status.get("latestVersion") or "")
+        _log_update_step("info", "New release selected", currentVersion=previous_version, targetVersion=version, releaseUrl=status.get("releaseUrl"))
         _set_install_state(
             "downloading",
             5,
@@ -387,6 +408,7 @@ async def _run_install() -> None:
         installer = update_dir / str(status.get("installerName") or "ExilesGameManager-Setup.exe")
         installer.unlink(missing_ok=True)
 
+        _log_update_step("info", "Downloading installer", installer=status.get("installerName"), targetVersion=version)
         async with httpx.AsyncClient(
             timeout=300,
             follow_redirects=True,
@@ -410,6 +432,8 @@ async def _run_install() -> None:
                 "Verifying the published SHA-256 checksum…",
                 target_version=version,
             )
+            _log_update_step("info", "Installer download completed", installer=installer.name, sizeBytes=installer.stat().st_size)
+            _log_update_step("info", "Downloading checksum", checksumUrl=status.get("checksumUrl"))
             checksum_response = await client.get(str(status["checksumUrl"]))
             checksum_response.raise_for_status()
             match = _SHA_RE.search(checksum_response.text)
@@ -419,9 +443,11 @@ async def _run_install() -> None:
             expected = match.group(0).lower()
             actual = hashlib.sha256(installer.read_bytes()).hexdigest().lower()
             if actual != expected:
+                _log_update_step("error", "SHA-256 verification failed", expected=expected, actual=actual, installer=installer.name)
                 installer.unlink(missing_ok=True)
                 raise RuntimeError("The downloaded installer failed SHA-256 verification.")
 
+        _log_update_step("info", "SHA-256 verification successful", sha256=actual, installer=installer.name)
         _set_install_state(
             "preparing",
             90,
@@ -429,7 +455,9 @@ async def _run_install() -> None:
             target_version=version,
         )
         script_path = _create_handoff_script(installer, version)
+        _log_update_step("info", "Detached updater created", script=script_path.name)
         _launch_handoff(script_path)
+        _log_update_step("info", "Detached updater started", targetVersion=version)
 
         app_event_log.log(
             "info",
@@ -438,6 +466,18 @@ async def _run_install() -> None:
             version=version,
             installer=installer.name,
         )
+        update_history.append_history({
+            "from": previous_version,
+            "to": version,
+            "channel": APP_CHANNEL,
+            "source": "github",
+            "installer": installer.name,
+            "sha256": actual,
+            "sha256Verified": True,
+            "status": "handoff_started",
+            "startedAt": started_at,
+            "handoffAt": time.time(),
+        })
         _set_install_state(
             "closing",
             100,
@@ -448,6 +488,16 @@ async def _run_install() -> None:
         os._exit(0)
     except Exception as exc:
         message = str(exc) or exc.__class__.__name__
+        _log_update_step("error", "Automatic update failed", error=message)
+        update_history.append_history({
+            "from": APP_VERSION,
+            "to": _INSTALL_STATE.get("targetVersion"),
+            "channel": APP_CHANNEL,
+            "source": "github",
+            "status": "failed",
+            "error": message,
+            "completedAt": time.time(),
+        })
         logger.exception("Automatic EGM update failed: %s", message)
         app_event_log.log("error", "EGM Update", f"Automatic update failed: {message}")
         _set_install_state("failed", 0, "The automatic update failed.", error=message)
@@ -486,14 +536,59 @@ def consume_completion_marker() -> dict[str, Any] | None:
 
     version = str(result.get("version") or APP_VERSION)
     if result.get("success"):
+        previous_version = str(result.get("fromVersion") or "unknown")
+        started_at = result.get("startedAt")
+        completed_at = result.get("completedAt")
+        duration_seconds = None
+        if isinstance(started_at, (int, float)) and isinstance(completed_at, (int, float)):
+            duration_seconds = round(float(completed_at) - float(started_at), 2)
+
+        detailed_message = (
+            f"New EGM version installed successfully: {previous_version} → {APP_VERSION}. "
+            f"Source: GitHub Release. SHA-256: verified. Installer exit code: {result.get('exitCode')}. "
+            f"Automatic restart: completed."
+        )
         app_event_log.log(
             "info",
-            "EGM Update",
-            f"Update completed successfully. EGM is now running version {APP_VERSION}.",
+            "New EGM Version Installed",
+            detailed_message,
+            previousVersion=previous_version,
             installedVersion=APP_VERSION,
             requestedVersion=version,
+            channel=APP_CHANNEL,
+            source="github",
+            sha256Verified=True,
+            installer=result.get("installer"),
             installerExitCode=result.get("exitCode"),
+            automaticRestart=True,
+            durationSeconds=duration_seconds,
+            startedAt=started_at,
+            completedAt=completed_at,
         )
+        _log_update_step(
+            "info",
+            "Update completed successfully",
+            previousVersion=previous_version,
+            installedVersion=APP_VERSION,
+            installerExitCode=result.get("exitCode"),
+            durationSeconds=duration_seconds,
+        )
+        update_history.append_history({
+            "from": previous_version,
+            "to": APP_VERSION,
+            "requestedVersion": version,
+            "channel": APP_CHANNEL,
+            "source": "github",
+            "installer": result.get("installer"),
+            "sha256": result.get("sha256"),
+            "sha256Verified": True,
+            "installerExitCode": result.get("exitCode"),
+            "automaticRestart": True,
+            "durationSeconds": duration_seconds,
+            "status": "success",
+            "startedAt": started_at,
+            "completedAt": completed_at,
+        })
         notification_center.publish(
             "success",
             "notifications.appUpdate.completedTitle",
@@ -509,9 +604,34 @@ def consume_completion_marker() -> dict[str, Any] | None:
         error = str(result.get("error") or f"Installer exit code {result.get('exitCode')}")
         app_event_log.log(
             "error",
-            "EGM Update",
-            f"Update installation failed: {error}",
+            "EGM Update Failed",
+            f"Automatic update installation failed for {version}: {error}",
+            previousVersion=result.get("fromVersion"),
+            requestedVersion=version,
+            installer=result.get("installer"),
+            installerExitCode=result.get("exitCode"),
+            automaticRestart=False,
+        )
+        _log_update_step(
+            "error",
+            "Installer failed",
             requestedVersion=version,
             installerExitCode=result.get("exitCode"),
+            error=error,
         )
+        update_history.append_history({
+            "from": result.get("fromVersion"),
+            "to": version,
+            "channel": APP_CHANNEL,
+            "source": "github",
+            "installer": result.get("installer"),
+            "sha256": result.get("sha256"),
+            "sha256Verified": result.get("sha256Verified"),
+            "installerExitCode": result.get("exitCode"),
+            "automaticRestart": False,
+            "status": "failed",
+            "error": error,
+            "startedAt": result.get("startedAt"),
+            "completedAt": result.get("completedAt"),
+        })
     return result
