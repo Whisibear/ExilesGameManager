@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.1 Public Beta 4 - Automatic updater hand-off hotfix
+
+- Replaced the fragile direct PowerShell detachment with an independent `cmd.exe start` hand-off.
+- Added a bounded 45-second parent-process wait with forced termination fallback.
+- Added dedicated `update_handoff.log` and `installer_update.log` diagnostics.
+- Added installer existence checks, Windows unblock handling, installer process verification and exit-code capture.
+- Added completion markers for both successful and failed installer hand-offs.
+- Added automatic fallback restart when installation fails so EGM is not left closed.
+- Updated EGM now restarts only after the installer completes successfully.
+
 ## 0.8.1 Public Beta 4
 
 ### Highlights

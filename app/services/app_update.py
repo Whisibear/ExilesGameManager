@@ -282,11 +282,21 @@ def _restart_executable_path() -> Path:
     return Path(sys.executable if is_frozen() else sys.argv[0]).resolve()
 
 
+def _handoff_log_path(installer: Path) -> Path:
+    return installer.parent / "update_handoff.log"
+
+
+def _installer_log_path(installer: Path) -> Path:
+    return installer.parent / "installer_update.log"
+
+
 def _create_handoff_script(installer: Path, version: str) -> Path:
     update_dir = installer.parent
     script_path = update_dir / "EGM-Update-Handoff.ps1"
     marker = _completion_marker_path()
     executable = _restart_executable_path()
+    handoff_log = _handoff_log_path(installer)
+    installer_log = _installer_log_path(installer)
     parent_pid = os.getpid()
 
     script = f"""$ErrorActionPreference = 'Stop'
@@ -294,81 +304,134 @@ $parentPid = {parent_pid}
 $installer = {_powershell_single_quote(str(installer))}
 $restartExe = {_powershell_single_quote(str(executable))}
 $marker = {_powershell_single_quote(str(marker))}
+$handoffLog = {_powershell_single_quote(str(handoff_log))}
+$installerLog = {_powershell_single_quote(str(installer_log))}
 $version = {_powershell_single_quote(version)}
 $fromVersion = {_powershell_single_quote(APP_VERSION)}
 $installerName = {_powershell_single_quote(installer.name)}
 $sha256 = {_powershell_single_quote(hashlib.sha256(installer.read_bytes()).hexdigest())}
 $startedAt = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
-
-while (Get-Process -Id $parentPid -ErrorAction SilentlyContinue) {{
-    Start-Sleep -Milliseconds 250
-}}
-Start-Sleep -Milliseconds 750
-
-$arguments = @(
-    '/UPDATE',
-    '/VERYSILENT',
-    '/SUPPRESSMSGBOXES',
-    '/NORESTART',
-    '/NORESTARTEGM',
-    '/CLOSEAPPLICATIONS',
-    '/FORCECLOSEAPPLICATIONS',
-    '/SP-'
-)
-
 $exitCode = -1
 $errorMessage = $null
-try {{
-    $process = Start-Process -FilePath $installer -ArgumentList $arguments -Wait -PassThru
-    $exitCode = $process.ExitCode
-}} catch {{
-    $errorMessage = $_.Exception.Message
+$installerStarted = $false
+$restartStarted = $false
+
+function Write-HandoffLog([string]$Message) {{
+    $timestamp = [DateTimeOffset]::UtcNow.ToString('o')
+    Add-Content -LiteralPath $handoffLog -Value ("[$timestamp] $Message") -Encoding UTF8
 }}
 
-$success = ($exitCode -eq 0)
-$result = @{{
-    version = $version
-    fromVersion = $fromVersion
-    installer = $installerName
-    sha256 = $sha256
-    sha256Verified = $true
-    startedAt = $startedAt
-    success = $success
-    exitCode = $exitCode
-    error = $errorMessage
-    completedAt = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
-}} | ConvertTo-Json -Compress
+function Write-ResultMarker([bool]$Success) {{
+    $result = @{{
+        version = $version
+        fromVersion = $fromVersion
+        installer = $installerName
+        installerPath = $installer
+        installerLog = $installerLog
+        handoffLog = $handoffLog
+        sha256 = $sha256
+        sha256Verified = $true
+        startedAt = $startedAt
+        success = $Success
+        installerStarted = $installerStarted
+        restartStarted = $restartStarted
+        exitCode = $exitCode
+        error = $errorMessage
+        completedAt = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+    }} | ConvertTo-Json -Compress
 
-New-Item -ItemType Directory -Path (Split-Path -Parent $marker) -Force | Out-Null
-[System.IO.File]::WriteAllText($marker, $result, (New-Object System.Text.UTF8Encoding($false)))
+    New-Item -ItemType Directory -Path (Split-Path -Parent $marker) -Force | Out-Null
+    [System.IO.File]::WriteAllText($marker, $result, (New-Object System.Text.UTF8Encoding($false)))
+}}
 
-if ($success -and (Test-Path -LiteralPath $restartExe -PathType Leaf)) {{
-    Start-Process -FilePath $restartExe -WorkingDirectory (Split-Path -Parent $restartExe)
+try {{
+    New-Item -ItemType Directory -Path (Split-Path -Parent $handoffLog) -Force | Out-Null
+    Write-HandoffLog "Detached updater started. Parent PID: $parentPid"
+    Write-HandoffLog "Installer: $installer"
+    Write-HandoffLog "Restart executable: $restartExe"
+
+    if (-not (Test-Path -LiteralPath $installer -PathType Leaf)) {{
+        throw "Downloaded installer was not found: $installer"
+    }}
+
+    try {{ Unblock-File -LiteralPath $installer -ErrorAction SilentlyContinue }} catch {{}}
+
+    $deadline = [DateTimeOffset]::UtcNow.AddSeconds(45)
+    while ((Get-Process -Id $parentPid -ErrorAction SilentlyContinue) -and
+           ([DateTimeOffset]::UtcNow -lt $deadline)) {{
+        Start-Sleep -Milliseconds 250
+    }}
+
+    if (Get-Process -Id $parentPid -ErrorAction SilentlyContinue) {{
+        Write-HandoffLog "Parent process did not exit within 45 seconds. Forcing termination."
+        Stop-Process -Id $parentPid -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 2
+    }} else {{
+        Write-HandoffLog "Parent process exited."
+    }}
+
+    $arguments = @(
+        '/UPDATE',
+        '/VERYSILENT',
+        '/SUPPRESSMSGBOXES',
+        '/NORESTART',
+        '/NORESTARTEGM',
+        '/SP-',
+        ('/LOG="' + $installerLog + '"')
+    )
+
+    Write-HandoffLog ("Launching installer with arguments: " + ($arguments -join ' '))
+    $process = Start-Process -FilePath $installer -ArgumentList $arguments -Wait -PassThru -ErrorAction Stop
+    $installerStarted = $true
+    $exitCode = $process.ExitCode
+    Write-HandoffLog "Installer exited with code $exitCode."
+
+    if ($exitCode -ne 0) {{
+        throw "Installer returned exit code $exitCode. See $installerLog"
+    }}
+
+    if (-not (Test-Path -LiteralPath $restartExe -PathType Leaf)) {{
+        throw "EGM restart executable was not found after installation: $restartExe"
+    }}
+
+    Write-HandoffLog "Starting updated EGM."
+    $restartProcess = Start-Process -FilePath $restartExe -WorkingDirectory (Split-Path -Parent $restartExe) -PassThru -ErrorAction Stop
+    $restartStarted = $true
+    Write-HandoffLog "Updated EGM started with PID $($restartProcess.Id)."
+    Write-ResultMarker $true
+}} catch {{
+    $errorMessage = $_.Exception.Message
+    Write-HandoffLog ("Update hand-off failed: " + $errorMessage)
+    Write-ResultMarker $false
+
+    if ((-not $restartStarted) -and (Test-Path -LiteralPath $restartExe -PathType Leaf)) {{
+        try {{
+            Write-HandoffLog "Restarting the existing EGM installation after failure."
+            Start-Process -FilePath $restartExe -WorkingDirectory (Split-Path -Parent $restartExe) | Out-Null
+            $restartStarted = $true
+        }} catch {{
+            Write-HandoffLog ("Fallback restart failed: " + $_.Exception.Message)
+        }}
+    }}
 }}
 """
     script_path.write_text(script, encoding="utf-8-sig")
     return script_path
 
 
-def _launch_handoff(script_path: Path) -> None:
+def _launch_handoff(script_path: Path) -> int:
     creation_flags = (
         getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
         | getattr(subprocess, "DETACHED_PROCESS", 0)
         | getattr(subprocess, "CREATE_NO_WINDOW", 0)
     )
-    subprocess.Popen(
-        [
-            "powershell.exe",
-            "-NoLogo",
-            "-NoProfile",
-            "-NonInteractive",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-WindowStyle",
-            "Hidden",
-            "-File",
-            str(script_path),
-        ],
+    command = (
+        'start "" /min powershell.exe '
+        '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass '
+        f'-File "{script_path}"'
+    )
+    process = subprocess.Popen(
+        ["cmd.exe", "/d", "/s", "/c", command],
         cwd=str(script_path.parent),
         creationflags=creation_flags,
         close_fds=True,
@@ -376,6 +439,7 @@ def _launch_handoff(script_path: Path) -> None:
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
+    return int(process.pid)
 
 
 async def _run_install() -> None:
@@ -456,8 +520,15 @@ async def _run_install() -> None:
         )
         script_path = _create_handoff_script(installer, version)
         _log_update_step("info", "Detached updater created", script=script_path.name)
-        _launch_handoff(script_path)
-        _log_update_step("info", "Detached updater started", targetVersion=version)
+        handoff_pid = _launch_handoff(script_path)
+        _log_update_step(
+            "info",
+            "Detached updater started",
+            targetVersion=version,
+            launcherPid=handoff_pid,
+            handoffLog=str(_handoff_log_path(installer)),
+            installerLog=str(_installer_log_path(installer)),
+        )
 
         app_event_log.log(
             "info",
