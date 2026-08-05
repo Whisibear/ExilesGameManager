@@ -23,13 +23,50 @@ if ([string]::IsNullOrWhiteSpace($Compiler)) {
     throw 'The Windows .NET Framework C# compiler (csc.exe) was not found.'
 }
 
-New-Item -ItemType Directory -Path (Split-Path -Parent $OutputPath) -Force | Out-Null
-& $Compiler /nologo /target:winexe /platform:x64 /optimize+ /checked+ /warnaserror+ /out:`"$OutputPath`" `"$SourcePath`"
-if ($LASTEXITCODE -ne 0) {
-    throw "UpdateWorker compilation failed with exit code $LASTEXITCODE."
+$outputDirectory = Split-Path -Parent $OutputPath
+New-Item -ItemType Directory -Path $outputDirectory -Force | Out-Null
+Remove-Item -LiteralPath $OutputPath -Force -ErrorAction SilentlyContinue
+
+$compilerArguments = @(
+    '/nologo',
+    '/target:winexe',
+    '/platform:x64',
+    '/optimize+',
+    '/checked+',
+    '/warnaserror+',
+    "/out:$OutputPath",
+    $SourcePath
+)
+
+& $Compiler @compilerArguments
+$compilerExitCode = $LASTEXITCODE
+
+if ($compilerExitCode -ne 0) {
+    throw "UpdateWorker compilation failed with exit code $compilerExitCode."
 }
+
 if (-not (Test-Path -LiteralPath $OutputPath -PathType Leaf)) {
     throw "UpdateWorker output missing: $OutputPath"
 }
 
+$outputFile = Get-Item -LiteralPath $OutputPath
+if ($outputFile.Length -lt 4096) {
+    throw "UpdateWorker output is unexpectedly small: $($outputFile.Length) bytes."
+}
+
+$stream = [System.IO.File]::OpenRead($OutputPath)
+try {
+    $first = $stream.ReadByte()
+    $second = $stream.ReadByte()
+}
+finally {
+    $stream.Dispose()
+}
+
+if ($first -ne 0x4D -or $second -ne 0x5A) {
+    throw "UpdateWorker output is not a valid Windows PE executable: $OutputPath"
+}
+
+$hash = (Get-FileHash -LiteralPath $OutputPath -Algorithm SHA256).Hash.ToLowerInvariant()
 Write-Host "[OK] UpdateWorker: $OutputPath" -ForegroundColor Green
+Write-Host "[OK] UpdateWorker SHA256: $hash" -ForegroundColor Green

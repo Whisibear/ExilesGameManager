@@ -90,7 +90,72 @@ jobs:
         run: python scripts/check_app_version.py
 
       - name: Build ExilesGameManager.exe with PyInstaller
-        run: python -m PyInstaller ExilesGameManager.spec --noconfirm
+        run: python -m PyInstaller ExilesGameManager.spec --noconfirm --clean
+
+      - name: Build native EGM UpdateWorker
+        shell: pwsh
+        run: |
+          $workerScript = Join-Path $PWD "scripts\Build-EGMUpdateWorker.ps1"
+          $workerOutput = Join-Path $PWD "dist\EGMUpdateWorker.exe"
+
+          if (-not (Test-Path -LiteralPath $workerScript -PathType Leaf)) {
+            throw "UpdateWorker build script not found: $workerScript"
+          }
+
+          & $workerScript -ProjectRoot $PWD.Path -OutputPath $workerOutput
+          if (-not $?) {
+            throw "UpdateWorker build script returned a failure."
+          }
+
+      - name: Verify packaged executables
+        shell: pwsh
+        run: |
+          $executables = @(
+            "dist\ExilesGameManager.exe",
+            "dist\EGMUpdateWorker.exe"
+          )
+
+          foreach ($path in $executables) {
+            if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+              throw "Required executable was not produced: $path"
+            }
+
+            $file = Get-Item -LiteralPath $path
+            if ($file.Length -lt 4096) {
+              throw "Executable is unexpectedly small: $path ($($file.Length) bytes)"
+            }
+
+            $bytes = [System.IO.File]::ReadAllBytes((Resolve-Path -LiteralPath $path))
+            if ($bytes.Length -lt 2 -or $bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) {
+              throw "File is not a valid Windows PE executable: $path"
+            }
+
+            Write-Host "[OK] $path ($($file.Length) bytes)"
+          }
+
+          $installerSource = Get-Content -LiteralPath "installer.iss" -Raw
+          if ($installerSource -notmatch 'Source:\s*"dist\\EGMUpdateWorker\.exe"') {
+            throw "installer.iss does not package dist\EGMUpdateWorker.exe"
+          }
+
+      - name: Smoke test native UpdateWorker startup
+        shell: pwsh
+        run: |
+          $worker = Resolve-Path -LiteralPath "dist\EGMUpdateWorker.exe"
+          $fallbackLog = Join-Path (Split-Path -Parent $worker) "update_worker_fallback.log"
+          Remove-Item -LiteralPath $fallbackLog -Force -ErrorAction SilentlyContinue
+
+          $process = Start-Process -FilePath $worker -PassThru -Wait
+          if ($process.ExitCode -ne 2) {
+            throw "UpdateWorker startup smoke test returned unexpected exit code $($process.ExitCode); expected 2 without EGM_UPDATE_JOB."
+          }
+
+          if (-not (Test-Path -LiteralPath $fallbackLog -PathType Leaf)) {
+            throw "UpdateWorker did not create its expected fallback diagnostic log."
+          }
+
+          Remove-Item -LiteralPath $fallbackLog -Force
+          Write-Host "[OK] Native UpdateWorker starts and validates its job handoff."
 
       - name: Smoke test packaged health endpoint
         shell: pwsh
@@ -120,6 +185,46 @@ jobs:
             "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe",
             "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
             "C:\Program Files\Inno Setup 6\ISCC.exe"
-          ) | Where-Object { Test-Path $_ } | Select-Object -First 1
-          if (-not $iscc) { throw "ISCC.exe not found" }
-          & $iscc installer.iss
+          ) | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
+
+          if (-not $iscc) {
+            throw "ISCC.exe not found"
+          }
+
+          & $iscc "installer.iss"
+          if ($LASTEXITCODE -ne 0) {
+            throw "Inno Setup failed with exit code $LASTEXITCODE"
+          }
+
+      - name: Verify installer output
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem -LiteralPath "installer_output" -Filter "ExilesGameManager-Setup-*.exe" -File |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+
+          if ($null -eq $setup) {
+            throw "Installer output was not produced."
+          }
+
+          if ($setup.Length -lt 1048576) {
+            throw "Installer output is unexpectedly small: $($setup.Length) bytes"
+          }
+
+          $bytes = [System.IO.File]::ReadAllBytes($setup.FullName)
+          if ($bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) {
+            throw "Installer output is not a valid Windows executable."
+          }
+
+          Write-Host "[OK] Installer: $($setup.FullName)"
+          Write-Host "[OK] SHA256: $((Get-FileHash -LiteralPath $setup.FullName -Algorithm SHA256).Hash)"
+
+      - name: Upload packaging smoke artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: egm-packaging-smoke
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            dist/EGMUpdateWorker.exe
+            installer_output/ExilesGameManager-Setup-*.exe

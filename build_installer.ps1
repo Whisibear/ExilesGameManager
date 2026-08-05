@@ -180,6 +180,33 @@ if (-not (Test-Path -LiteralPath $standaloneExe -PathType Leaf)) {
 if (-not (Test-Path -LiteralPath $workerExe -PathType Leaf)) {
     throw "UpdateWorker executable was not produced: $workerExe"
 }
+
+$workerFile = Get-Item -LiteralPath $workerExe
+if ($workerFile.Length -lt 4096) {
+    throw "UpdateWorker executable is unexpectedly small: $($workerFile.Length) bytes"
+}
+
+$workerBytes = [System.IO.File]::ReadAllBytes($workerExe)
+if ($workerBytes.Length -lt 2 -or $workerBytes[0] -ne 0x4D -or $workerBytes[1] -ne 0x5A) {
+    throw "UpdateWorker executable is not a valid Windows PE file: $workerExe"
+}
+
+$workerFallbackLog = Join-Path (Split-Path -Parent $workerExe) 'update_worker_fallback.log'
+Remove-Item -LiteralPath $workerFallbackLog -Force -ErrorAction SilentlyContinue
+$workerSmoke = Start-Process -FilePath $workerExe -PassThru -Wait
+if ($workerSmoke.ExitCode -ne 2) {
+    throw "UpdateWorker smoke test returned exit code $($workerSmoke.ExitCode); expected 2 without EGM_UPDATE_JOB."
+}
+if (-not (Test-Path -LiteralPath $workerFallbackLog -PathType Leaf)) {
+    throw 'UpdateWorker smoke test did not create update_worker_fallback.log.'
+}
+Remove-Item -LiteralPath $workerFallbackLog -Force
+
+$installerSource = [System.IO.File]::ReadAllText($installerScript, [System.Text.Encoding]::UTF8)
+if ($installerSource -notmatch 'Source:\s*"dist\\EGMUpdateWorker\.exe"') {
+    throw 'installer.iss does not include dist\EGMUpdateWorker.exe.'
+}
+
 Sign-BinaryIfConfigured -Path $standaloneExe
 Sign-BinaryIfConfigured -Path $workerExe
 
@@ -224,6 +251,16 @@ $setup = Get-ChildItem -LiteralPath $outputDirectory -Filter '*.exe' -File |
 if ($null -eq $setup) {
     throw "Setup executable was not produced in: $outputDirectory"
 }
+
+if ($setup.Length -lt 1MB) {
+    throw "Setup executable is unexpectedly small: $($setup.Length) bytes"
+}
+
+$setupBytes = [System.IO.File]::ReadAllBytes($setup.FullName)
+if ($setupBytes.Length -lt 2 -or $setupBytes[0] -ne 0x4D -or $setupBytes[1] -ne 0x5A) {
+    throw "Setup output is not a valid Windows PE executable: $($setup.FullName)"
+}
+
 Sign-BinaryIfConfigured -Path $setup.FullName
 
 $hash = (Get-FileHash -LiteralPath $setup.FullName -Algorithm SHA256).Hash.ToLowerInvariant()

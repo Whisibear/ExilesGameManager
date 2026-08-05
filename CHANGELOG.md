@@ -13,6 +13,18 @@
 
 ## 0.8.1 Public Beta 5
 
+### Complete UpdateWorker packaging fix
+
+- Fixed the GitHub Actions packaging job failing because `dist/EGMUpdateWorker.exe` was not built before Inno Setup.
+- GitHub Actions now builds and validates the native UpdateWorker before compiling the installer.
+- Added a real UpdateWorker startup smoke test to the Windows packaging job.
+- Added PE-file and minimum-size checks for EGM, UpdateWorker and Setup outputs.
+- Added CI packaging artifacts for inspection after every packaging smoke run.
+- Local One-Click Release now validates the same worker-before-installer contract.
+- GitHub source export and publish are blocked when the public CI workflow cannot reproduce the native worker build.
+- Version remains `0.8.1-beta.5`; existing GitHub release assets can be replaced after rebuilding.
+
+
 ### Native UpdateWorker path hotfix
 
 - Fixed the Windows error `The file '\\' was not found` during panel updates.
