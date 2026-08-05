@@ -24,7 +24,7 @@ if ([string]::IsNullOrWhiteSpace($Compiler)) {
 }
 
 New-Item -ItemType Directory -Path (Split-Path -Parent $OutputPath) -Force | Out-Null
-& $Compiler /nologo /target:winexe /platform:x64 /optimize+ /checked+ /out:$OutputPath $SourcePath
+& $Compiler /nologo /target:winexe /platform:x64 /optimize+ /checked+ /warnaserror+ /out:`"$OutputPath`" `"$SourcePath`"
 if ($LASTEXITCODE -ne 0) {
     throw "UpdateWorker compilation failed with exit code $LASTEXITCODE."
 }

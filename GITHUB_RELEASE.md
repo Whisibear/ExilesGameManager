@@ -43,3 +43,16 @@ The in-app updater selects the newest supported GitHub release and looks for the
 - Confirm that all older Setup executables, portable ZIPs and checksum files are removed before the build.
 - Confirm that `C:\EGM\EGM-Releases\GitHub-Source` is deleted and recreated.
 - Confirm that only artifacts from the current One-Click build remain in `C:\EGM\EGM-Releases`.
+
+## Native UpdateWorker path hotfix
+
+### Native UpdateWorker path hotfix
+
+- Fixed the Windows error `The file '\\' was not found` during panel updates.
+- Replaced all path-bearing UpdateWorker command-line arguments with a validated Base64 job file.
+- The native worker now starts without path arguments and receives only the job-file location through `EGM_UPDATE_JOB`.
+- Installer, restart, marker and log paths are validated both before EGM closes and inside the native worker.
+- Setup and EGM restart use direct process creation without Windows shell execution.
+- Added fallback diagnostics for errors that occur before the normal worker log can be opened.
+- Version remains `0.8.1-beta.5`, allowing replacement of the current release assets.
+

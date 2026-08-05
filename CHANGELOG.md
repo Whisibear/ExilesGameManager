@@ -13,6 +13,17 @@
 
 ## 0.8.1 Public Beta 5
 
+### Native UpdateWorker path hotfix
+
+- Fixed the Windows error `The file '\\' was not found` during panel updates.
+- Replaced all path-bearing UpdateWorker command-line arguments with a validated Base64 job file.
+- The native worker now starts without path arguments and receives only the job-file location through `EGM_UPDATE_JOB`.
+- Installer, restart, marker and log paths are validated both before EGM closes and inside the native worker.
+- Setup and EGM restart use direct process creation without Windows shell execution.
+- Added fallback diagnostics for errors that occur before the normal worker log can be opened.
+- Version remains `0.8.1-beta.5`, allowing replacement of the current release assets.
+
+
 ### Automatic updater reliability
 
 - Rebuilt the panel-based automatic update handoff.

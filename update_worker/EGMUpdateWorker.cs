@@ -17,28 +17,63 @@ using System.Threading;
 internal static class Program
 {
     private const int ParentWaitSeconds = 15;
+    private const string JobEnvironmentVariable = "EGM_UPDATE_JOB";
 
-    private static int Main(string[] args)
+    private static int Main()
     {
+        string fallbackLog = Path.Combine(
+            AppDomain.CurrentDomain.BaseDirectory,
+            "update_worker_fallback.log"
+        );
+
         Dictionary<string, string> options;
+        string jobPath = Environment.GetEnvironmentVariable(JobEnvironmentVariable);
+
         try
         {
-            options = ParseArguments(args);
+            if (string.IsNullOrWhiteSpace(jobPath))
+            {
+                throw new InvalidOperationException(
+                    JobEnvironmentVariable + " is missing."
+                );
+            }
+
+            jobPath = ValidatePath(jobPath, true, "job");
+            options = ReadJob(jobPath);
         }
         catch (Exception ex)
         {
-            return FailWithoutLog("Invalid UpdateWorker arguments: " + ex.Message);
+            TryLog(fallbackLog, "Unable to read update job: " + ex);
+            return 2;
         }
 
-        string installer = Required(options, "installer");
-        string restartExe = Required(options, "restart");
-        string marker = Required(options, "marker");
-        string handoffLog = Required(options, "handoff-log");
-        string installerLog = Required(options, "installer-log");
-        string fromVersion = Get(options, "from", "unknown");
-        string toVersion = Get(options, "to", "unknown");
-        string sha256 = Get(options, "sha256", string.Empty);
-        int parentPid = ParseInt(Get(options, "parent-pid", "0"));
+        string installer;
+        string restartExe;
+        string marker;
+        string handoffLog;
+        string installerLog;
+        string fromVersion;
+        string toVersion;
+        string sha256;
+        int parentPid;
+
+        try
+        {
+            installer = ValidatePath(Required(options, "installer"), true, "installer");
+            restartExe = ValidatePath(Required(options, "restart"), false, "restart executable");
+            marker = ValidatePath(Required(options, "marker"), false, "completion marker");
+            handoffLog = ValidatePath(Required(options, "handoff-log"), false, "worker log");
+            installerLog = ValidatePath(Required(options, "installer-log"), false, "installer log");
+            fromVersion = Get(options, "from", "unknown");
+            toVersion = Get(options, "to", "unknown");
+            sha256 = Get(options, "sha256", string.Empty);
+            parentPid = ParseInt(Get(options, "parent-pid", "0"));
+        }
+        catch (Exception ex)
+        {
+            TryLog(fallbackLog, "Invalid update job values: " + ex);
+            return 3;
+        }
 
         long startedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         int installerExitCode = -1;
@@ -50,106 +85,247 @@ internal static class Program
         {
             EnsureParentDirectory(handoffLog);
             Log(handoffLog, "UpdateWorker started.");
+            Log(handoffLog, "Job: " + jobPath);
             Log(handoffLog, "Installer: " + installer);
             Log(handoffLog, "Restart executable: " + restartExe);
             Log(handoffLog, "Parent PID: " + parentPid.ToString(CultureInfo.InvariantCulture));
 
-            if (!File.Exists(installer))
-            {
-                throw new FileNotFoundException("Downloaded installer was not found.", installer);
-            }
-
             WaitForParent(parentPid, handoffLog);
 
-            string arguments = "/UPDATE /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /NORESTARTEGM /SP- /LOG=\"" + installerLog + "\"";
-            Log(handoffLog, "Starting installer with silent update arguments.");
+            string setupArguments =
+                "/UPDATE /VERYSILENT /SUPPRESSMSGBOXES /NORESTART " +
+                "/NORESTARTEGM /SP- /LOG=\"" + installerLog + "\"";
 
-            ProcessStartInfo setupInfo = new ProcessStartInfo
-            {
-                FileName = installer,
-                Arguments = arguments,
-                WorkingDirectory = Path.GetDirectoryName(installer) ?? Environment.CurrentDirectory,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                WindowStyle = ProcessWindowStyle.Hidden
-            };
+            ProcessStartInfo setupInfo = new ProcessStartInfo();
+            setupInfo.FileName = installer;
+            setupInfo.Arguments = setupArguments;
+            setupInfo.WorkingDirectory =
+                Path.GetDirectoryName(installer) ?? Environment.CurrentDirectory;
+            setupInfo.UseShellExecute = false;
+            setupInfo.CreateNoWindow = true;
+            setupInfo.WindowStyle = ProcessWindowStyle.Hidden;
 
+            Log(handoffLog, "Starting installer without shell execution.");
             using (Process setup = Process.Start(setupInfo))
             {
                 if (setup == null)
                 {
-                    throw new InvalidOperationException("Windows did not create the installer process.");
+                    throw new InvalidOperationException(
+                        "Windows did not create the installer process."
+                    );
                 }
+
                 installerStarted = true;
-                Log(handoffLog, "Installer started with PID " + setup.Id.ToString(CultureInfo.InvariantCulture) + ".");
+                Log(
+                    handoffLog,
+                    "Installer started with PID " +
+                    setup.Id.ToString(CultureInfo.InvariantCulture) +
+                    "."
+                );
                 setup.WaitForExit();
                 installerExitCode = setup.ExitCode;
             }
 
-            Log(handoffLog, "Installer exited with code " + installerExitCode.ToString(CultureInfo.InvariantCulture) + ".");
+            Log(
+                handoffLog,
+                "Installer exited with code " +
+                installerExitCode.ToString(CultureInfo.InvariantCulture) +
+                "."
+            );
+
             if (installerExitCode != 0)
             {
-                throw new InvalidOperationException("Installer returned exit code " + installerExitCode.ToString(CultureInfo.InvariantCulture) + ".");
+                throw new InvalidOperationException(
+                    "Installer returned exit code " +
+                    installerExitCode.ToString(CultureInfo.InvariantCulture) +
+                    "."
+                );
             }
 
-            if (!File.Exists(restartExe))
-            {
-                throw new FileNotFoundException("Updated EGM executable was not found.", restartExe);
-            }
+            restartExe = ValidatePath(
+                restartExe,
+                true,
+                "updated EGM executable"
+            );
 
-            ProcessStartInfo restartInfo = new ProcessStartInfo
-            {
-                FileName = restartExe,
-                WorkingDirectory = Path.GetDirectoryName(restartExe) ?? Environment.CurrentDirectory,
-                UseShellExecute = true
-            };
+            ProcessStartInfo restartInfo = new ProcessStartInfo();
+            restartInfo.FileName = restartExe;
+            restartInfo.WorkingDirectory =
+                Path.GetDirectoryName(restartExe) ?? Environment.CurrentDirectory;
+            restartInfo.UseShellExecute = false;
+            restartInfo.CreateNoWindow = false;
+
+            Log(handoffLog, "Starting updated EGM without shell execution.");
             Process restarted = Process.Start(restartInfo);
             if (restarted == null)
             {
-                throw new InvalidOperationException("Windows did not restart EGM.");
+                throw new InvalidOperationException(
+                    "Windows did not restart EGM."
+                );
             }
+
             restartStarted = true;
-            Log(handoffLog, "Updated EGM started with PID " + restarted.Id.ToString(CultureInfo.InvariantCulture) + ".");
-            WriteMarker(marker, true, fromVersion, toVersion, installer, installerLog, handoffLog, sha256, startedAt, installerStarted, restartStarted, installerExitCode, null);
+            Log(
+                handoffLog,
+                "Updated EGM started with PID " +
+                restarted.Id.ToString(CultureInfo.InvariantCulture) +
+                "."
+            );
+
+            WriteMarker(
+                marker,
+                true,
+                fromVersion,
+                toVersion,
+                installer,
+                installerLog,
+                handoffLog,
+                sha256,
+                startedAt,
+                installerStarted,
+                restartStarted,
+                installerExitCode,
+                null
+            );
+
+            TryDelete(jobPath, handoffLog);
             return 0;
         }
         catch (Exception ex)
         {
             error = ex.ToString();
             TryLog(handoffLog, "Automatic update failed: " + error);
-            WriteMarker(marker, false, fromVersion, toVersion, installer, installerLog, handoffLog, sha256, startedAt, installerStarted, restartStarted, installerExitCode, error);
+
+            WriteMarker(
+                marker,
+                false,
+                fromVersion,
+                toVersion,
+                installer,
+                installerLog,
+                handoffLog,
+                sha256,
+                startedAt,
+                installerStarted,
+                restartStarted,
+                installerExitCode,
+                error
+            );
 
             if (!restartStarted && File.Exists(restartExe))
             {
                 try
                 {
-                    ProcessStartInfo fallbackInfo = new ProcessStartInfo
-                    {
-                        FileName = restartExe,
-                        WorkingDirectory = Path.GetDirectoryName(restartExe) ?? Environment.CurrentDirectory,
-                        UseShellExecute = true
-                    };
+                    ProcessStartInfo fallbackInfo = new ProcessStartInfo();
+                    fallbackInfo.FileName = restartExe;
+                    fallbackInfo.WorkingDirectory =
+                        Path.GetDirectoryName(restartExe) ??
+                        Environment.CurrentDirectory;
+                    fallbackInfo.UseShellExecute = false;
+                    fallbackInfo.CreateNoWindow = false;
+
                     Process fallback = Process.Start(fallbackInfo);
                     if (fallback != null)
                     {
-                        TryLog(handoffLog, "Existing EGM installation restarted after update failure.");
+                        TryLog(
+                            handoffLog,
+                            "Existing EGM installation restarted after update failure."
+                        );
                     }
                 }
                 catch (Exception restartError)
                 {
-                    TryLog(handoffLog, "Fallback restart failed: " + restartError);
+                    TryLog(
+                        handoffLog,
+                        "Fallback restart failed: " + restartError
+                    );
                 }
             }
+
             return 1;
         }
+    }
+
+    private static Dictionary<string, string> ReadJob(string path)
+    {
+        Dictionary<string, string> result =
+            new Dictionary<string, string>(
+                StringComparer.OrdinalIgnoreCase
+            );
+
+        foreach (string rawLine in File.ReadAllLines(path, Encoding.ASCII))
+        {
+            if (string.IsNullOrWhiteSpace(rawLine))
+            {
+                continue;
+            }
+
+            int separator = rawLine.IndexOf('=');
+            if (separator <= 0)
+            {
+                throw new InvalidDataException("Invalid update job line.");
+            }
+
+            string key = rawLine.Substring(0, separator);
+            string encodedValue = rawLine.Substring(separator + 1);
+            byte[] bytes = Convert.FromBase64String(encodedValue);
+            result[key] = Encoding.UTF8.GetString(bytes);
+        }
+
+        return result;
+    }
+
+    private static string ValidatePath(
+        string value,
+        bool mustExist,
+        string description
+    )
+    {
+        string raw = value == null ? string.Empty : value.Trim();
+        if (raw.Length == 0 ||
+            raw == "\\" ||
+            raw == "\\\\" ||
+            raw == "/" ||
+            raw == ".")
+        {
+            throw new InvalidDataException(
+                "Unsafe " + description + " path: " + raw
+            );
+        }
+
+        string fullPath = Path.GetFullPath(raw);
+        string trimmed = fullPath.Trim();
+
+        if (!Path.IsPathRooted(fullPath) ||
+            trimmed == "\\" ||
+            trimmed == "\\\\" ||
+            trimmed == "/" ||
+            trimmed == ".")
+        {
+            throw new InvalidDataException(
+                "Unsafe " + description + " path: " + raw
+            );
+        }
+
+        if (mustExist && !File.Exists(fullPath))
+        {
+            throw new FileNotFoundException(
+                "Required " + description + " file was not found.",
+                fullPath
+            );
+        }
+
+        return fullPath;
     }
 
     private static void WaitForParent(int parentPid, string logPath)
     {
         if (parentPid <= 0)
         {
+            Log(logPath, "No parent PID supplied; continuing.");
             return;
         }
+
         Stopwatch timer = Stopwatch.StartNew();
         while (timer.Elapsed < TimeSpan.FromSeconds(ParentWaitSeconds))
         {
@@ -169,42 +345,39 @@ internal static class Program
                 Log(logPath, "EGM parent process exited.");
                 return;
             }
+
             Thread.Sleep(250);
         }
-        Log(logPath, "Parent process still exists after bounded wait; Setup will close EGM through the installer shutdown logic.");
+
+        Log(
+            logPath,
+            "Parent process still exists after bounded wait; " +
+            "Setup will use the installer shutdown logic."
+        );
     }
 
-    private static Dictionary<string, string> ParseArguments(string[] args)
-    {
-        Dictionary<string, string> result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        for (int index = 0; index < args.Length; index++)
-        {
-            string current = args[index];
-            if (!current.StartsWith("--", StringComparison.Ordinal))
-            {
-                continue;
-            }
-            string key = current.Substring(2);
-            if (index + 1 >= args.Length)
-            {
-                throw new ArgumentException("Missing value for --" + key);
-            }
-            result[key] = args[++index];
-        }
-        return result;
-    }
-
-    private static string Required(Dictionary<string, string> options, string key)
+    private static string Required(
+        Dictionary<string, string> options,
+        string key
+    )
     {
         string value;
-        if (!options.TryGetValue(key, out value) || string.IsNullOrWhiteSpace(value))
+        if (!options.TryGetValue(key, out value) ||
+            string.IsNullOrWhiteSpace(value))
         {
-            throw new ArgumentException("Required argument --" + key + " is missing.");
+            throw new ArgumentException(
+                "Required job value " + key + " is missing."
+            );
         }
+
         return value;
     }
 
-    private static string Get(Dictionary<string, string> options, string key, string fallback)
+    private static string Get(
+        Dictionary<string, string> options,
+        string key,
+        string fallback
+    )
     {
         string value;
         return options.TryGetValue(key, out value) ? value : fallback;
@@ -213,13 +386,29 @@ internal static class Program
     private static int ParseInt(string value)
     {
         int result;
-        return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out result) ? result : 0;
+        return int.TryParse(
+            value,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out result
+        ) ? result : 0;
     }
 
     private static void Log(string path, string message)
     {
         EnsureParentDirectory(path);
-        File.AppendAllText(path, "[" + DateTimeOffset.UtcNow.ToString("o", CultureInfo.InvariantCulture) + "] " + message + Environment.NewLine, new UTF8Encoding(false));
+        File.AppendAllText(
+            path,
+            "[" +
+            DateTimeOffset.UtcNow.ToString(
+                "o",
+                CultureInfo.InvariantCulture
+            ) +
+            "] " +
+            message +
+            Environment.NewLine,
+            new UTF8Encoding(false)
+        );
     }
 
     private static void TryLog(string path, string message)
@@ -236,42 +425,98 @@ internal static class Program
         }
     }
 
-    private static void WriteMarker(string path, bool success, string fromVersion, string toVersion, string installer, string installerLog, string handoffLog, string sha256, long startedAt, bool installerStarted, bool restartStarted, int exitCode, string error)
+    private static void TryDelete(string path, string logPath)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch (Exception ex)
+        {
+            TryLog(logPath, "Unable to delete update job: " + ex.Message);
+        }
+    }
+
+    private static void WriteMarker(
+        string path,
+        bool success,
+        string fromVersion,
+        string toVersion,
+        string installer,
+        string installerLog,
+        string handoffLog,
+        string sha256,
+        long startedAt,
+        bool installerStarted,
+        bool restartStarted,
+        int exitCode,
+        string error
+    )
     {
         try
         {
             EnsureParentDirectory(path);
-            string json = "{" +
+            string json =
+                "{" +
                 "\"version\":\"" + Escape(toVersion) + "\"," +
                 "\"fromVersion\":\"" + Escape(fromVersion) + "\"," +
-                "\"installer\":\"" + Escape(Path.GetFileName(installer)) + "\"," +
+                "\"installer\":\"" +
+                Escape(Path.GetFileName(installer)) +
+                "\"," +
                 "\"installerPath\":\"" + Escape(installer) + "\"," +
                 "\"installerLog\":\"" + Escape(installerLog) + "\"," +
                 "\"handoffLog\":\"" + Escape(handoffLog) + "\"," +
                 "\"sha256\":\"" + Escape(sha256) + "\"," +
                 "\"sha256Verified\":true," +
-                "\"startedAt\":" + startedAt.ToString(CultureInfo.InvariantCulture) + "," +
+                "\"startedAt\":" +
+                startedAt.ToString(CultureInfo.InvariantCulture) +
+                "," +
                 "\"success\":" + (success ? "true" : "false") + "," +
-                "\"installerStarted\":" + (installerStarted ? "true" : "false") + "," +
-                "\"restartStarted\":" + (restartStarted ? "true" : "false") + "," +
-                "\"exitCode\":" + exitCode.ToString(CultureInfo.InvariantCulture) + "," +
-                "\"error\":" + (error == null ? "null" : "\"" + Escape(error) + "\"") + "," +
-                "\"completedAt\":" + DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture) +
+                "\"installerStarted\":" +
+                (installerStarted ? "true" : "false") +
+                "," +
+                "\"restartStarted\":" +
+                (restartStarted ? "true" : "false") +
+                "," +
+                "\"exitCode\":" +
+                exitCode.ToString(CultureInfo.InvariantCulture) +
+                "," +
+                "\"error\":" +
+                (
+                    error == null
+                    ? "null"
+                    : "\"" + Escape(error) + "\""
+                ) +
+                "," +
+                "\"completedAt\":" +
+                DateTimeOffset.UtcNow
+                    .ToUnixTimeSeconds()
+                    .ToString(CultureInfo.InvariantCulture) +
                 "}";
-            File.WriteAllText(path, json, new UTF8Encoding(false));
+
+            File.WriteAllText(
+                path,
+                json,
+                new UTF8Encoding(false)
+            );
         }
         catch { }
     }
 
     private static string Escape(string value)
     {
-        if (value == null) return string.Empty;
-        return value.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", "\\r").Replace("\n", "\\n");
-    }
+        if (value == null)
+        {
+            return string.Empty;
+        }
 
-    private static int FailWithoutLog(string message)
-    {
-        try { Console.Error.WriteLine(message); } catch { }
-        return 2;
+        return value
+            .Replace("\\", "\\\\")
+            .Replace("\"", "\\\"")
+            .Replace("\r", "\\r")
+            .Replace("\n", "\\n");
     }
 }

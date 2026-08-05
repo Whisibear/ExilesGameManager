@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import hashlib
 import json
 import logging
@@ -292,37 +293,105 @@ def _installer_log_path(installer: Path) -> Path:
     return installer.parent / "installer_update.log"
 
 
-def _launch_update_worker(installer: Path, version: str, sha256: str) -> subprocess.Popen[bytes]:
-    worker = _update_worker_path()
-    if not worker.is_file():
-        raise RuntimeError(f"The native EGM UpdateWorker is missing: {worker}")
+def _validated_update_path(path: Path, *, must_exist: bool = False) -> Path:
+    raw = str(path).strip()
+    if raw in {"", "\\", "\\\\", "/", "."}:
+        raise RuntimeError(f"Unsafe update path was rejected: {raw!r}")
 
-    marker = _completion_marker_path()
-    restart_executable = _restart_executable_path()
-    handoff_log = _handoff_log_path(installer)
-    installer_log = _installer_log_path(installer)
-    bootstrap_log = installer.parent / "update_worker_bootstrap.log"
+    resolved = path.expanduser().resolve(strict=False)
+    text = str(resolved).strip()
+    if not resolved.is_absolute():
+        raise RuntimeError(f"Update path is not absolute: {path}")
+    if text in {"", "\\", "\\\\", "/", "."}:
+        raise RuntimeError(f"Unsafe update path was rejected: {text!r}")
+    if must_exist and not resolved.is_file():
+        raise RuntimeError(f"Required update file is missing: {resolved}")
+    return resolved
+
+
+def _encode_job_value(value: str) -> str:
+    return base64.b64encode(value.encode("utf-8")).decode("ascii")
+
+
+def _write_update_worker_job(
+    installer: Path,
+    version: str,
+    sha256: str,
+) -> Path:
+    worker = _validated_update_path(_update_worker_path(), must_exist=True)
+    installer = _validated_update_path(installer, must_exist=True)
+    restart_executable = _validated_update_path(
+        _restart_executable_path(),
+        must_exist=False,
+    )
+    marker = _validated_update_path(_completion_marker_path())
+    handoff_log = _validated_update_path(_handoff_log_path(installer))
+    installer_log = _validated_update_path(_installer_log_path(installer))
+    job_path = _validated_update_path(installer.parent / "update_worker.job")
+
+    values = {
+        "worker": str(worker),
+        "parent-pid": str(os.getpid()),
+        "installer": str(installer),
+        "restart": str(restart_executable),
+        "marker": str(marker),
+        "handoff-log": str(handoff_log),
+        "installer-log": str(installer_log),
+        "from": APP_VERSION,
+        "to": version,
+        "sha256": sha256,
+    }
+    payload = "\n".join(
+        f"{key}={_encode_job_value(value)}"
+        for key, value in values.items()
+    )
+    job_path.write_text(payload + "\n", encoding="ascii")
+    return job_path
+
+
+def _launch_update_worker(
+    installer: Path,
+    version: str,
+    sha256: str,
+) -> subprocess.Popen[bytes]:
+    worker_path = _update_worker_path()
+    if not worker_path.is_file():
+        raise RuntimeError(
+            f"The native EGM UpdateWorker is missing: {worker_path}"
+        )
+
+    worker = _validated_update_path(worker_path, must_exist=True)
+    job_path = _write_update_worker_job(installer, version, sha256)
+    bootstrap_log = _validated_update_path(
+        installer.parent / "update_worker_bootstrap.log"
+    )
     log_handle = bootstrap_log.open("ab", buffering=0)
     creation_flags = (
         getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
         | getattr(subprocess, "DETACHED_PROCESS", 0)
     )
-    arguments = [
-        str(worker),
-        "--parent-pid", str(os.getpid()),
-        "--installer", str(installer),
-        "--restart", str(restart_executable),
-        "--marker", str(marker),
-        "--handoff-log", str(handoff_log),
-        "--installer-log", str(installer_log),
-        "--from", APP_VERSION,
-        "--to", version,
-        "--sha256", sha256,
-    ]
+    environment = os.environ.copy()
+    environment["EGM_UPDATE_JOB"] = str(job_path)
+
+    _log_update_step(
+        "info",
+        "Native UpdateWorker job created",
+        worker=str(worker),
+        job=str(job_path),
+        installer=str(_validated_update_path(installer, must_exist=True)),
+        restart=str(
+            _validated_update_path(
+                _restart_executable_path(),
+                must_exist=False,
+            )
+        ),
+    )
+
     try:
         return subprocess.Popen(
-            arguments,
-            cwd=str(installer.parent),
+            [str(worker)],
+            cwd=str(installer.parent.resolve()),
+            env=environment,
             creationflags=creation_flags,
             close_fds=True,
             stdin=subprocess.DEVNULL,
@@ -418,6 +487,7 @@ async def _run_install() -> None:
             worker=str(_update_worker_path()),
             handoffLog=str(_handoff_log_path(installer)),
             bootstrapLog=str(installer.parent / "update_worker_bootstrap.log"),
+            job=str(installer.parent / "update_worker.job"),
             installerLog=str(_installer_log_path(installer)),
         )
 
