@@ -119,6 +119,7 @@ Report security issues privately and never attach credentials, OAuth tokens, sav
 - Getting started: [`GETTING_STARTED.md`](GETTING_STARTED.md)
 - Public changes: [`CHANGELOG.md`](CHANGELOG.md)
 - Security policy: [`SECURITY.md`](SECURITY.md)
+- Windows Defender and SmartScreen notice: [`WINDOWS_SECURITY_NOTICE.md`](WINDOWS_SECURITY_NOTICE.md)
 - Issue tracker: use the repository issue templates
 
 ## Privacy and terms
@@ -127,6 +128,8 @@ EGM is self-hosted and does not use a Whisibear-operated telemetry, analytics or
 
 The terms document also explains local accounts, the functional session cookie, browser local/session storage, caches, OAuth token storage, diagnostics, deletion and host-operator responsibilities.
 
+Windows executable reputation, SmartScreen, antivirus detections, checksum verification and false-positive reporting are documented in [`WINDOWS_SECURITY_NOTICE.md`](WINDOWS_SECURITY_NOTICE.md).
+
 ## License and attribution
 
-EGM is distributed under the MIT License. See [`LICENSE`](LICENSE), [`CREDITS.md`](CREDITS.md) and [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+EGM is distributed under the MIT License. The current project is maintained by Whisibear while the original MIT attribution is preserved. See [`LICENSE`](LICENSE), [`COPYRIGHT_AND_ATTRIBUTION.md`](COPYRIGHT_AND_ATTRIBUTION.md), [`CREDITS.md`](CREDITS.md) and [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

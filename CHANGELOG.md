@@ -1,28 +1,37 @@
-## 0.8.1 Public Beta 7
-
-### Stable privacy and terms audit
-
-- Added a detailed `TERMS_OF_SERVICE.md` covering the self-hosted data model, local accounts, sessions, cookies, browser storage, caches, OAuth, external services, deletion and host-operator responsibilities.
-- Removed the automatic Google Fonts request; the interface now uses operating-system fonts only.
-- Session cookies are explicitly scoped to `/` and receive the `Secure` attribute when EGM is served through HTTPS.
-- Corrected obsolete documentation that claimed Nexus integration was removed.
-- GitHub publishing now refreshes the public source export from the current development tree and requires the terms file.
-
-
-### Automatic updater installation fix
-
-- Fixed Beta 6 → Beta 7 updates aborting with Inno Setup exit code 5.
-- Automatic updates no longer overwrite the currently running installed UpdateWorker.
-- Future updates execute a detached worker copy from the versioned update cache.
-- Update restart reuses the current browser tab and the dialog remains closable.
-
-
-- Prepared the complete Beta 6 to Beta 7 automatic update test.
-- Synchronized all release versions to `0.8.1-beta.7`.
-- Persisted explicit public language choices to authenticated user accounts.
-- Kept the One-Click Release smoke test unchanged.
-
 # Changelog
+
+All notable public changes to Exiles Game Manager are documented here. Internal release engineering notes remain in the private development tree.
+
+## 0.8.1 Public Beta 7 — Current stable beta
+
+### Added
+
+- Persistent language selection across login, setup, authenticated sessions, restarts and updates.
+- Detailed self-hosted privacy and terms documentation.
+- Windows SmartScreen, Defender, antivirus and checksum-verification guidance.
+- Explicit copyright, project-lineage and third-party attribution documentation.
+
+### Changed
+
+- Standardized the complete application and Windows release version on `0.8.1-beta.7`.
+- Removed the remote Google Fonts request and retained local system-font rendering.
+- Session cookies use path `/` and automatically receive `Secure` when served through HTTPS.
+- Public GitHub export is generated from an explicit allowlist and excludes internal release automation, tests, tickets, audits, logs, runtime data and secrets.
+
+### Fixed
+
+- Fixed automatic updates failing with Inno Setup exit code 5 because the running UpdateWorker locked its own destination file.
+- Future update hand-offs use a detached worker in the versioned update cache.
+- The initiating browser tab reconnects after an update instead of opening a second tab.
+- The update dialog remains visible, scrollable and closable on short browser viewports.
+
+### Verified
+
+- Beta 6 → Beta 7 download, SHA-256 verification, installation, automatic restart and browser reconnection completed successfully.
+- Settings, local accounts, language preference, OAuth state, server definitions and backups remained preserved.
+
+
+## Previous releases
 
 ## 0.8.1 Public Beta 6 - Windows packaging and signing hardening
 

@@ -5,7 +5,7 @@ Exiles Game Manager uses open-source libraries and external tools. Their names, 
 
 ## Original project foundation
 
-Copyright (c) 2026 Kvitekvist. Distributed under the MIT License. The original copyright and permission notice are retained in `LICENSE`.
+Portions of EGM derive from the original ExilesGameManager / AutoPalExpress foundation by Kvitekvist. The original MIT copyright and permission notice are retained in `LICENSE`. Current project maintenance and attribution are described in `COPYRIGHT_AND_ATTRIBUTION.md`.
 
 ## UE4SS
 

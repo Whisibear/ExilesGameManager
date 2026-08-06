@@ -9,7 +9,7 @@ Public scope:
 - Nexus Mods integration, including metadata retrieval, authentication/session handling, mod browsing, preview images, download handoff, installation, and update handling
 - Runtime and installer entry points
 - Dependency lock files and build configuration
-- Public documentation, licensing, security policy, support tooling, and GitHub Actions validation
+- Public documentation, licensing, attribution, security and Windows security notices, support tooling, and GitHub Actions validation
 - `scripts/check_app_version.py` as the only public build-validation script
 
 Excluded scope:
@@ -17,7 +17,7 @@ Excluded scope:
 - `.claude/`
 - `tickets/`
 - `tests/`
-- internal documentation and development notes
+- internal documentation, development notes, ticket history, private audits and release-operator automation
 - local release and GitHub publishing scripts
 - logs, diagnostics, backups, saves, installed mods, caches, virtual environments, build output, and runtime data
 - credentials, API keys, OAuth secrets, tokens, passwords, and user-specific configuration
@@ -56,3 +56,33 @@ Release binaries are distributed exclusively through GitHub Releases as installe
 ## Privacy and terms
 
 `TERMS_OF_SERVICE.md` is a required public file. It documents the self-hosted data model, local storage, functional sessions/cookies, browser storage, external service connections and host-operator responsibilities.
+
+## Documentation publication boundary
+
+Public documentation includes:
+
+- `README.md`
+- `GETTING_STARTED.md`
+- `BUILDING.md`
+- `CHANGELOG.md`
+- `SECURITY.md`
+- `TERMS_OF_SERVICE.md`
+- `WINDOWS_SECURITY_NOTICE.md`
+- `COPYRIGHT_AND_ATTRIBUTION.md`
+- `CREDITS.md`
+- `THIRD_PARTY_NOTICES.md`
+- `PUBLIC_SOURCE_POLICY.md`
+
+The following files remain internal and are not published:
+
+- `CHANGELOG_INTERNAL.md`
+- `docs/`
+- `tickets/`
+- `.claude/`
+- `AGENTS.md`
+- One-Click release scripts
+- GitHub mirror publishing scripts
+- project audit output
+- local signing configuration
+
+`NEXUS_DESCRIPTION.md` remains internal until a Nexus publication is intentionally prepared. Historical migration notes are also excluded unless they are required for current users or reproducible builds.
