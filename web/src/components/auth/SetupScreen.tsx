@@ -8,13 +8,15 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { PublicLanguageSwitcher } from "@/components/layout/PublicLanguageSwitcher";
+import { PUBLIC_LANGUAGE_SELECTION_KEY } from "@/i18n";
+import { getLanguageOption } from "@/i18n/languages";
 
 interface SetupScreenProps {
   onDone: (user: AuthUser) => void;
 }
 
 export function SetupScreen({ onDone }: SetupScreenProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [username, setUsername] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [confirm, setConfirm] = React.useState("");
@@ -30,7 +32,17 @@ export function SetupScreen({ onDone }: SetupScreenProps) {
     }
     setSubmitting(true);
     try {
-      const user = await authApi.setup(username.trim(), password);
+      let user = await authApi.setup(username.trim(), password);
+
+      const selectedPublicLanguage = window.sessionStorage.getItem(PUBLIC_LANGUAGE_SELECTION_KEY);
+      if (selectedPublicLanguage) {
+        const language = getLanguageOption(i18n.resolvedLanguage ?? i18n.language).code;
+        if (user.language !== language) {
+          user = await authApi.setLanguage(language);
+        }
+        window.sessionStorage.removeItem(PUBLIC_LANGUAGE_SELECTION_KEY);
+      }
+
       onDone(user);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("auth.setup.createError"));

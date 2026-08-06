@@ -1,6 +1,6 @@
 #define MyAppName "Exiles Game Manager"
-#define MyAppVersion "0.8.1-beta.6"
-#define MyWindowsVersion "0.8.1.6"
+#define MyAppVersion "0.8.1-beta.7"
+#define MyWindowsVersion "0.8.1.7"
 #define MyAppPublisher "Whisibear"
 #define MyAppURL "https://github.com/Whisibear/ExilesGameManager"
 #define MyAppExeName "ExilesGameManager.exe"

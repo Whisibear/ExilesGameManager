@@ -1,3 +1,10 @@
+## 0.8.1 Public Beta 7
+
+- Prepared the complete Beta 6 to Beta 7 automatic update test.
+- Synchronized all release versions to `0.8.1-beta.7`.
+- Persisted explicit public language choices to authenticated user accounts.
+- Kept the One-Click Release smoke test unchanged.
+
 # Changelog
 
 ## 0.8.1 Public Beta 6 - Windows packaging and signing hardening

@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Check, ChevronDown, Languages } from "lucide-react";
 import { SUPPORTED_LANGUAGES, getLanguageOption } from "@/i18n/languages";
-import { setLanguage } from "@/i18n";
+import { PUBLIC_LANGUAGE_SELECTION_KEY, setLanguage } from "@/i18n";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
@@ -10,7 +10,10 @@ interface PublicLanguageSwitcherProps { className?: string; compact?: boolean; }
 export function PublicLanguageSwitcher({ className, compact = false }: PublicLanguageSwitcherProps) {
   const { i18n, t } = useTranslation();
   const active = getLanguageOption(i18n.resolvedLanguage ?? i18n.language);
-  function selectLanguage(code: string) { setLanguage(code); document.documentElement.lang = code; }
+  function selectLanguage(code: string) {
+    setLanguage(code);
+    window.sessionStorage.setItem(PUBLIC_LANGUAGE_SELECTION_KEY, code);
+  }
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>

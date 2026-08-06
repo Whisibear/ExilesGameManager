@@ -3,7 +3,7 @@
   <assemblyIdentity
     type="win32"
     name="Whisibear.ExilesGameManager"
-    version="0.8.1.6"
+    version="0.8.1.7"
     processorArchitecture="amd64"
   />
   <description>Exiles Game Manager</description>

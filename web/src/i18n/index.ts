@@ -9,6 +9,7 @@ import es from "./locales/es.json";
 import { DEFAULT_LANGUAGE } from "./languages";
 
 export const LANGUAGE_STORAGE_KEY = "exilesgamemanager:language";
+export const PUBLIC_LANGUAGE_SELECTION_KEY = "exilesgamemanager:public-language-selected";
 
 const resources = {
   en: { translation: en },

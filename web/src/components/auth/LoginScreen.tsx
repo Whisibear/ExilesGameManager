@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { PublicLanguageSwitcher } from "@/components/layout/PublicLanguageSwitcher";
+import { PUBLIC_LANGUAGE_SELECTION_KEY } from "@/i18n";
+import { getLanguageOption } from "@/i18n/languages";
 
 interface LoginScreenProps {
   onDone: (user: AuthUser) => void;
@@ -17,7 +19,7 @@ interface LoginScreenProps {
 type Mode = "login" | "register";
 
 export function LoginScreen({ onDone }: LoginScreenProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [mode, setMode] = React.useState<Mode>("login");
   const [username, setUsername] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -30,10 +32,20 @@ export function LoginScreen({ onDone }: LoginScreenProps) {
     setError(null);
     setSubmitting(true);
     try {
-      const user =
+      let user =
         mode === "login"
           ? await authApi.login(username.trim(), password)
           : await authApi.register(username.trim(), password, inviteCode.trim());
+
+      const selectedPublicLanguage = window.sessionStorage.getItem(PUBLIC_LANGUAGE_SELECTION_KEY);
+      if (selectedPublicLanguage) {
+        const language = getLanguageOption(i18n.resolvedLanguage ?? i18n.language).code;
+        if (user.language !== language) {
+          user = await authApi.setLanguage(language);
+        }
+        window.sessionStorage.removeItem(PUBLIC_LANGUAGE_SELECTION_KEY);
+      }
+
       onDone(user);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("auth.common.genericError"));
