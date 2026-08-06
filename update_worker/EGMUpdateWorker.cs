@@ -155,8 +155,14 @@ internal static class Program
                 Path.GetDirectoryName(restartExe) ?? Environment.CurrentDirectory;
             restartInfo.UseShellExecute = false;
             restartInfo.CreateNoWindow = false;
+            restartInfo.EnvironmentVariables["EGM_SUPPRESS_BROWSER"] = "1";
+            restartInfo.EnvironmentVariables["EGM_UPDATED_FROM"] = fromVersion;
+            restartInfo.EnvironmentVariables["EGM_UPDATED_TO"] = toVersion;
 
-            Log(handoffLog, "Starting updated EGM without shell execution.");
+            Log(
+                handoffLog,
+                "Starting updated EGM without opening a new browser tab."
+            );
             Process restarted = Process.Start(restartInfo);
             if (restarted == null)
             {
@@ -224,6 +230,7 @@ internal static class Program
                         Environment.CurrentDirectory;
                     fallbackInfo.UseShellExecute = false;
                     fallbackInfo.CreateNoWindow = false;
+                    fallbackInfo.EnvironmentVariables["EGM_SUPPRESS_BROWSER"] = "1";
 
                     Process fallback = Process.Start(fallbackInfo);
                     if (fallback != null)

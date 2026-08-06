@@ -3,6 +3,7 @@ opens the default browser to it. The packaged application runs without a visible
 since app/main.py also serves the built frontend when it's present.
 """
 
+import os
 import socket
 import sys
 import threading
@@ -156,10 +157,11 @@ def main() -> None:
 
     port = system_settings.get_admin_port()
     url = f"http://{LOCAL_HOST}:{port}/"
+    suppress_browser = os.environ.get("EGM_SUPPRESS_BROWSER") == "1"
 
     if _port_in_use(LOCAL_HOST, port):
-        # Already running (e.g. the user launched the app twice) - just open it.
-        webbrowser.open(url)
+        if not suppress_browser:
+            webbrowser.open(url)
         return
 
     def open_browser_when_ready() -> None:
@@ -169,7 +171,8 @@ def main() -> None:
                 return
             time.sleep(0.25)
 
-    threading.Thread(target=open_browser_when_ready, daemon=True).start()
+    if not suppress_browser:
+        threading.Thread(target=open_browser_when_ready, daemon=True).start()
 
     try:
         import uvicorn

@@ -31,6 +31,7 @@ function UpdateAvailableBadge() {
   const [checking, setChecking] = React.useState(false);
   const [installing, setInstalling] = React.useState(false);
   const installPollRef = React.useRef<number | null>(null);
+  const backendDisconnectedRef = React.useRef(false);
   const [error, setError] = React.useState<string | null>(null);
 
   const load = React.useCallback(async (force = false) => {
@@ -68,13 +69,25 @@ function UpdateAvailableBadge() {
         try {
           const next = await appUpdateApi.getStatus(false);
           setStatus(next);
+
+          if (
+            backendDisconnectedRef.current &&
+            next.currentVersion === status.latestVersion
+          ) {
+            if (installPollRef.current !== null) {
+              window.clearInterval(installPollRef.current);
+            }
+            window.location.reload();
+            return;
+          }
+
           if (next.installPhase === "failed") {
             setInstalling(false);
             setError(next.installError ?? next.installMessage ?? "The automatic update failed.");
             if (installPollRef.current !== null) window.clearInterval(installPollRef.current);
           }
         } catch {
-          // Expected once the backend closes and the detached updater takes over.
+          backendDisconnectedRef.current = true;
         }
       }, 500);
     } catch (reason) {
@@ -98,9 +111,9 @@ function UpdateAvailableBadge() {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-mana-500/35 bg-[#0a1119] shadow-2xl shadow-black/60">
-            <div className="flex items-start justify-between border-b border-stone-700/60 px-5 py-4">
+        <div className="fixed inset-0 z-[120] flex items-start justify-center overflow-y-auto bg-black/75 p-4 backdrop-blur-sm sm:items-center">
+          <div className="my-auto max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl border border-mana-500/35 bg-[#0a1119] shadow-2xl shadow-black/60">
+            <div className="sticky top-0 z-10 flex items-start justify-between border-b border-stone-700/60 bg-[#0a1119] px-5 py-4">
               <div>
                 <p className="text-[11px] uppercase tracking-[.18em] text-mana-300/70">{t("updates.dialogEyebrow", { defaultValue: "Exiles Game Manager Update" })}</p>
                 <h2 className="mt-1 text-xl font-semibold text-parchment-100">{t("updates.dialogTitle", { version: status.latestVersion, defaultValue: `Install ${status.latestVersion}?` })}</h2>

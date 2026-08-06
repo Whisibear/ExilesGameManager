@@ -12,6 +12,7 @@ export function AppUpdatePanel() {
   const [checking, setChecking] = React.useState(true);
   const [installing, setInstalling] = React.useState(false);
   const installPollRef = React.useRef<number | null>(null);
+  const backendDisconnectedRef = React.useRef(false);
   const [error, setError] = React.useState<string | null>(null);
 
   const load = React.useCallback(async (force = false) => {
@@ -57,14 +58,25 @@ export function AppUpdatePanel() {
         try {
           const next = await appUpdateApi.getStatus(false);
           setStatus(next);
+
+          if (
+            backendDisconnectedRef.current &&
+            next.currentVersion === status.latestVersion
+          ) {
+            if (installPollRef.current !== null) {
+              window.clearInterval(installPollRef.current);
+            }
+            window.location.reload();
+            return;
+          }
+
           if (next.installPhase === "failed") {
             setInstalling(false);
             setError(next.installError ?? next.installMessage ?? "The automatic update failed.");
             if (installPollRef.current !== null) window.clearInterval(installPollRef.current);
           }
         } catch {
-          // The backend becomes unreachable when EGM closes for installation.
-          // Keep the final status visible while the external updater takes over.
+          backendDisconnectedRef.current = true;
         }
       }, 500);
     } catch (reason) {

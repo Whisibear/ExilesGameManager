@@ -7,6 +7,7 @@ import hashlib
 import json
 import logging
 import os
+import shutil
 import re
 import subprocess
 import sys
@@ -360,7 +361,17 @@ def _launch_update_worker(
             f"The native EGM UpdateWorker is missing: {worker_path}"
         )
 
-    worker = _validated_update_path(worker_path, must_exist=True)
+    installed_worker = _validated_update_path(
+        worker_path,
+        must_exist=True,
+    )
+    worker = _validated_update_path(
+        installer.parent / "EGMUpdateWorker.detached.exe",
+        must_exist=False,
+    )
+    shutil.copy2(installed_worker, worker)
+    worker = _validated_update_path(worker, must_exist=True)
+
     job_path = _write_update_worker_job(installer, version, sha256)
     bootstrap_log = _validated_update_path(
         installer.parent / "update_worker_bootstrap.log"
@@ -377,6 +388,8 @@ def _launch_update_worker(
         "info",
         "Native UpdateWorker job created",
         worker=str(worker),
+        installedWorker=str(installed_worker),
+        detachedWorker=True,
         job=str(job_path),
         installer=str(_validated_update_path(installer, must_exist=True)),
         restart=str(

@@ -1,5 +1,13 @@
 ## 0.8.1 Public Beta 7
 
+### Automatic updater installation fix
+
+- Fixed Beta 6 → Beta 7 updates aborting with Inno Setup exit code 5.
+- Automatic updates no longer overwrite the currently running installed UpdateWorker.
+- Future updates execute a detached worker copy from the versioned update cache.
+- Update restart reuses the current browser tab and the dialog remains closable.
+
+
 - Prepared the complete Beta 6 to Beta 7 automatic update test.
 - Synchronized all release versions to `0.8.1-beta.7`.
 - Persisted explicit public language choices to authenticated user accounts.

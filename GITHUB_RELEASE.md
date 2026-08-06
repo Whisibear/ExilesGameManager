@@ -18,3 +18,10 @@ This release is intended for the complete automatic update test from Public Beta
 6. Restart EGM automatically.
 7. Confirm `0.8.1-beta.7`.
 8. Confirm settings, accounts, OAuth, servers, backups and language remain unchanged.
+
+## Automatic Updater Fix
+
+- Fixes Inno Setup exit code 5 during Beta 6 → Beta 7 updates.
+- Runs future UpdateWorkers from the versioned cache.
+- Reuses the current browser tab after restart.
+- Keeps the update dialog visible and closable.

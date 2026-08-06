@@ -101,7 +101,8 @@ Name: "{commonappdata}\ExilesGameManager\Servers"; Permissions: users-modify
 Name: "{commonappdata}\ExilesGameManager\data\steamcmd"; Permissions: users-modify
 
 [Files]
-Source: "dist\ExilesGameManager\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "dist\ExilesGameManager\*"; DestDir: "{app}"; Excludes: "EGMUpdateWorker.exe"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "dist\ExilesGameManager\EGMUpdateWorker.exe"; DestDir: "{app}"; Flags: ignoreversion; Check: ShouldInstallUpdateWorker
 Source: "ExilesGameManager.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "Install_Prerequisites.ps1"; DestDir: "{tmp}"; Flags: deleteafterinstall
 Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion
@@ -163,6 +164,11 @@ begin
       Exit;
     end;
   end;
+end;
+
+function ShouldInstallUpdateWorker(): Boolean;
+begin
+  Result := not HasCommandLineSwitch('UPDATE');
 end;
 
 function ReadExistingInstallation(): Boolean;
