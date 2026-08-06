@@ -1,13 +1,19 @@
-# Nexus-to-Steam Workshop Migration
+# Steam Workshop and Nexus Mods Integration
 
-The Nexus integration has been removed from the active application routing and user interface. Existing historical source files and ticket records remain in the repository solely for attribution, migration reference, and audit history.
+Exiles Game Manager supports Steam Workshop, Nexus Mods and manual mod installation as separate workflows. This document replaces the obsolete statement that Nexus integration had been removed.
 
-New installations use the official Palworld Workshop layout:
+## Steam Workshop
 
-`<PalServer>/Mods/Workshop/<WorkshopId>/Info.json`
+Steam Workshop metadata is obtained from Steam services. Downloads and dedicated-server operations are performed through the locally installed SteamCMD client. Anonymous access is used where Steam permits it; temporary authenticated SteamCMD access is available only when explicitly initiated by the super administrator.
 
-Activation is managed in:
+## Nexus Mods
 
-`<PalServer>/Pal/Saved/Config/WindowsServer/PalModSettings.ini`
+Public Nexus browsing uses Nexus public metadata APIs. OAuth 2.0 with PKCE is used for connected-account functionality. Direct automatic downloads require the permissions and membership level required by Nexus Mods. The user's OAuth record remains on the local Windows machine and is protected using Windows DPAPI.
 
-Existing manually installed UE4SS and PAK mods continue to be supported by the manual installer. Nexus credentials, Nexus Premium, Nexus OAuth, and Nexus API keys are not required by the active Steam Workshop workflow.
+## Manual files
+
+A super administrator may select a local `.zip` or `.7z` mod archive. EGM stages the archive locally, computes its MD5 digest and may submit that digest to Nexus Mods for catalog matching. The complete archive is not sent by the hash-lookup step. Unmatched files may still be installed as unverified local files after the administrator confirms the operation.
+
+## Platform rules
+
+All Steam, Nexus Mods, game, mod-author and copyright terms continue to apply. EGM does not bypass Premium requirements, access controls, rate limits or content restrictions.

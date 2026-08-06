@@ -153,6 +153,7 @@ Start_Exiles_Game_Manager.bat
 Start_Exiles_Game_Manager.ps1
 STEAM_WORKSHOP_MIGRATION.md
 support/diagnose-exilesgamemanager.ps1
+TERMS_OF_SERVICE.md
 THIRD_PARTY_NOTICES.md
 update_worker/EGMUpdateWorker.cs
 version_info.txt

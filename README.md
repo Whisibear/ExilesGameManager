@@ -121,6 +121,12 @@ Report security issues privately and never attach credentials, OAuth tokens, sav
 - Security policy: [`SECURITY.md`](SECURITY.md)
 - Issue tracker: use the repository issue templates
 
+## Privacy and terms
+
+EGM is self-hosted and does not use a Whisibear-operated telemetry, analytics or account server. Application data remains on the host machine unless the operator explicitly uses a third-party feature or voluntarily shares a diagnostic package. External connections for GitHub updates, Nexus Mods, Steam/SteamCMD and optional public-IP lookup are documented in [TERMS_OF_SERVICE.md](TERMS_OF_SERVICE.md).
+
+The terms document also explains local accounts, the functional session cookie, browser local/session storage, caches, OAuth token storage, diagnostics, deletion and host-operator responsibilities.
+
 ## License and attribution
 
 EGM is distributed under the MIT License. See [`LICENSE`](LICENSE), [`CREDITS.md`](CREDITS.md) and [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

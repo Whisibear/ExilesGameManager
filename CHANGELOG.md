@@ -1,5 +1,14 @@
 ## 0.8.1 Public Beta 7
 
+### Stable privacy and terms audit
+
+- Added a detailed `TERMS_OF_SERVICE.md` covering the self-hosted data model, local accounts, sessions, cookies, browser storage, caches, OAuth, external services, deletion and host-operator responsibilities.
+- Removed the automatic Google Fonts request; the interface now uses operating-system fonts only.
+- Session cookies are explicitly scoped to `/` and receive the `Secure` attribute when EGM is served through HTTPS.
+- Corrected obsolete documentation that claimed Nexus integration was removed.
+- GitHub publishing now refreshes the public source export from the current development tree and requires the terms file.
+
+
 ### Automatic updater installation fix
 
 - Fixed Beta 6 → Beta 7 updates aborting with Inno Setup exit code 5.

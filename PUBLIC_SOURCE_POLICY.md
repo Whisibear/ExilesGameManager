@@ -52,3 +52,7 @@ Release binaries are distributed exclusively through GitHub Releases as installe
 
 
 - `ExilesGameManager.manifest` — Windows application manifest required for reproducible packaging and metadata validation.
+
+## Privacy and terms
+
+`TERMS_OF_SERVICE.md` is a required public file. It documents the self-hosted data model, local storage, functional sessions/cookies, browser storage, external service connections and host-operator responsibilities.

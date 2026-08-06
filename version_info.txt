@@ -18,7 +18,7 @@ VSVersionInfo(
           StringStruct(u'FileDescription', u'Exiles Game Manager'),
           StringStruct(u'FileVersion', u'0.8.1-beta.7'),
           StringStruct(u'InternalName', u'ExilesGameManager'),
-          StringStruct(u'LegalCopyright', u'Copyright (c) 2026 Kvitekvist; Copyright (c) 2026 Whisibear'),
+          StringStruct(u'LegalCopyright', u'Copyright © 2026 Whisibear'),
           StringStruct(u'OriginalFilename', u'ExilesGameManager.exe'),
           StringStruct(u'ProductName', u'Exiles Game Manager'),
           StringStruct(u'ProductVersion', u'0.8.1-beta.7')

@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Orbitron:wght@500;600;700;800&display=swap");
 @import "tailwindcss";
 
 @theme {
@@ -52,10 +51,10 @@
   --color-blood-500: #ef4444;
   --color-blood-600: #c52d3a;
 
-  --font-display: "Orbitron", "Inter", system-ui, sans-serif;
-  --font-display-deco: "Orbitron", "Inter", system-ui, sans-serif;
-  --font-body: "Inter", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-display: "Segoe UI Variable Display", "Segoe UI", Arial, sans-serif;
+  --font-display-deco: "Segoe UI Variable Display", "Segoe UI", Arial, sans-serif;
+  --font-body: "Segoe UI Variable Text", "Segoe UI", Arial, sans-serif;
+  --font-mono: Consolas, "Cascadia Mono", ui-monospace, monospace;
 
   --animate-glow-pulse: glow-pulse 2.8s ease-in-out infinite;
   --animate-signal-flicker: signal-flicker 4s ease-in-out infinite;

@@ -23,12 +23,12 @@ class SetupRequest(BaseModel):
 
 
 @router.post("/setup")
-async def setup(body: SetupRequest, response: Response) -> dict[str, Any]:
+async def setup(body: SetupRequest, request: Request, response: Response) -> dict[str, Any]:
     try:
         user = auth.create_first_super_admin(body.username, body.password)
     except AuthError as e:
         raise HTTPException(status_code=400, detail=e.message)
-    _set_session_cookie(response, user["id"])
+    _set_session_cookie(response, user["id"], request)
     return auth.public_view(user)
 
 
@@ -39,12 +39,12 @@ class RegisterRequest(BaseModel):
 
 
 @router.post("/register")
-async def register(body: RegisterRequest, response: Response) -> dict[str, Any]:
+async def register(body: RegisterRequest, request: Request, response: Response) -> dict[str, Any]:
     try:
         user = auth.register_with_invite(body.username, body.password, body.inviteCode)
     except AuthError as e:
         raise HTTPException(status_code=400, detail=e.message)
-    _set_session_cookie(response, user["id"])
+    _set_session_cookie(response, user["id"], request)
     return auth.public_view(user)
 
 
@@ -66,7 +66,7 @@ async def login(body: LoginRequest, request: Request, response: Response) -> dic
         login_throttle.record_failure(client_ip)
         raise HTTPException(status_code=401, detail="Wrong username or password.")
     login_throttle.record_success(client_ip)
-    _set_session_cookie(response, user["id"])
+    _set_session_cookie(response, user["id"], request)
     return auth.public_view(user)
 
 
@@ -75,7 +75,7 @@ async def logout(request: Request, response: Response) -> dict[str, bool]:
     token = request.cookies.get(SESSION_COOKIE)
     if token:
         session_store.delete_session(token)
-    response.delete_cookie(SESSION_COOKIE)
+    response.delete_cookie(SESSION_COOKIE, path="/")
     return {"ok": True}
 
 
@@ -97,7 +97,7 @@ async def set_language(body: SetLanguageRequest, user: dict[str, Any] = Depends(
     return auth.public_view(updated)
 
 
-def _set_session_cookie(response: Response, user_id: str) -> None:
+def _set_session_cookie(response: Response, user_id: str, request: Request) -> None:
     token = session_store.create_session(user_id)
     response.set_cookie(
         SESSION_COOKIE,
@@ -105,4 +105,6 @@ def _set_session_cookie(response: Response, user_id: str) -> None:
         max_age=_COOKIE_MAX_AGE,
         httponly=True,
         samesite="lax",
+        secure=request.url.scheme == "https",
+        path="/",
     )
