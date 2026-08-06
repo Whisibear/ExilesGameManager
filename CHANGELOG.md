@@ -1,6 +1,80 @@
 # Changelog
 
+## 0.8.1 Public Beta 6 - Windows packaging and signing hardening
+
+- Changed the Windows application package from PyInstaller Onefile to Onedir.
+- Python runtime files are installed permanently under `_internal` instead of extracting to `%TEMP%\_MEI...` on every start.
+- Added mandatory Onedir runtime validation for `python3*.dll` and `base_library.zip`.
+- Updated Inno Setup to install the complete application directory recursively.
+- Added native application startup and health-endpoint smoke testing before installer creation.
+- Added Authenticode signing and verification for EGM, UpdateWorker, Setup and the Inno Setup uninstaller.
+- Added `EGM_REQUIRE_CODESIGN=1` release enforcement for public builds.
+- SHA-256 files are generated only after final signing.
+- Updated One-Click Release, GitHub Actions, source export and publish validation for the new package layout.
+
 ## 0.8.1 Public Beta 6
+
+### Public export internal-validation fix
+
+- Fixed exported-source validation when the internal One-Click Release script is intentionally excluded from the public repository.
+- `check_app_version.py` now validates the One-Click metadata template only when the internal script exists.
+- The minimal GitHub source export remains clean and does not expose internal release automation.
+- Full development builds continue to validate the internal One-Click metadata template.
+
+
+### Public source manifest export fix
+
+- Added `ExilesGameManager.manifest` to the minimal GitHub source export.
+- Added the manifest to public-source completeness validation.
+- Added the manifest to GitHub publish preflight checks.
+- Fixed the final One-Click Release failure during exported-source version validation.
+
+
+### CI Onedir path validation fix
+
+- Fixed the final One-Click Release failure during public source export.
+- Updated Source Export and GitHub Publish validation to the current `dist\ExilesGameManager\EGMUpdateWorker.exe` Onedir path.
+- Removed the obsolete pre-Onedir `dist\EGMUpdateWorker.exe` check.
+
+
+### Complete release metadata flow fix
+
+- Fixed the One-Click Release source template that restored the obsolete company value during every build.
+- Standardized application, UpdateWorker, installer and CI metadata on publisher label `Whisibear`.
+- Added semantic ProductVersion metadata to the native UpdateWorker.
+- Removed hard-coded Beta 6 version checks from the local installer build and GitHub Actions.
+- Future versions are now read dynamically from `app/version.py`.
+- Added release-blocking validation for stale or conflicting metadata before packaging.
+
+
+### PowerShell scope parser correction
+
+- Fixed the One-Click Release parser failure caused by malformed environment-variable syntax.
+- Restored native PowerShell syntax for `$env:`, `$script:`, `$global:`, `$local:` and `$private:` scoped variables.
+- Corrected all affected release, installer, prerequisite, diagnostic and Defender scripts.
+- Added regression tests that distinguish scoped variables from normal interpolated variables followed by text colons.
+
+
+### PowerShell release parser hotfix
+
+- Fixed a PowerShell parser error in the Windows metadata validation step.
+- Corrected variable interpolation before colons in One-Click Release scripts.
+- Added a regression test covering all PowerShell release scripts.
+
+
+### Windows Variant 4 hardening
+
+- Finalized the free local Windows hardening approach without Azure or a paid certificate.
+- Kept the One-Click Release workflow unchanged for the user.
+- Standardized PyInstaller on the Onedir layout with `_internal`, the Python runtime DLL and `base_library.zip`.
+- Disabled UPX and embedded a modern Windows application manifest.
+- EGM now runs as the current user (`asInvoker`) and declares Per-Monitor V2 DPI support, long-path awareness and Segment Heap.
+- Standardized Windows metadata to publisher label `Whisibear`, product `Exiles Game Manager` and version `0.8.1-beta.6`.
+- Added strict metadata, PE-file, Onedir-runtime and startup validation.
+- Added local Microsoft Defender scans for the final application directory, Setup executable and portable ZIP.
+- Defender validation never disables protection and never adds exclusions.
+- Code signing remains optional for a future trusted certificate but is not required for local Variant-4 releases.
+
 
 ### Global language selection
 

@@ -14,11 +14,11 @@ VSVersionInfo(
       StringTable(
         u'040904B0',
         [
-          StringStruct(u'CompanyName', u'Whisibear EGM'),
+          StringStruct(u'CompanyName', u'Whisibear'),
           StringStruct(u'FileDescription', u'Exiles Game Manager'),
           StringStruct(u'FileVersion', u'0.8.1-beta.6'),
           StringStruct(u'InternalName', u'ExilesGameManager'),
-          StringStruct(u'LegalCopyright', u'Copyright (c) 2026 Kvitekvist; Copyright (c) 2026 Whisibear EGM'),
+          StringStruct(u'LegalCopyright', u'Copyright (c) 2026 Kvitekvist; Copyright (c) 2026 Whisibear'),
           StringStruct(u'OriginalFilename', u'ExilesGameManager.exe'),
           StringStruct(u'ProductName', u'Exiles Game Manager'),
           StringStruct(u'ProductVersion', u'0.8.1-beta.6')

@@ -8,11 +8,12 @@ using System.Threading;
 
 [assembly: System.Reflection.AssemblyTitle("Exiles Game Manager Update Worker")]
 [assembly: System.Reflection.AssemblyDescription("Native update handoff worker for Exiles Game Manager")]
-[assembly: System.Reflection.AssemblyCompany("Whisibear EGM")]
+[assembly: System.Reflection.AssemblyCompany("Whisibear")]
 [assembly: System.Reflection.AssemblyProduct("Exiles Game Manager")]
-[assembly: System.Reflection.AssemblyCopyright("Copyright © 2026 Whisibear EGM")]
-[assembly: System.Reflection.AssemblyVersion("0.8.1.5")]
-[assembly: System.Reflection.AssemblyFileVersion("0.8.1.5")]
+[assembly: System.Reflection.AssemblyCopyright("Copyright © 2026 Whisibear")]
+[assembly: System.Reflection.AssemblyVersion("0.8.1.6")]
+[assembly: System.Reflection.AssemblyFileVersion("0.8.1.6")]
+[assembly: System.Reflection.AssemblyInformationalVersion("0.8.1-beta.6")]
 
 internal static class Program
 {

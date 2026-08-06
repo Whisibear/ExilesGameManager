@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$DataDir = (Join-Path $env:LOCALAPPDATA "ExilesGameManager\data"),
     [string]$ReportDir = (Join-Path $env:LOCALAPPDATA "ExilesGameManager\diagnostics"),
     [switch]$NoPause

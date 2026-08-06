@@ -85,3 +85,51 @@ The in-app updater selects the newest supported GitHub release and looks for the
 - Added automated translation-completeness tests for English, German, French, Spanish, Japanese and Simplified Chinese.
 - Updated backend, frontend and installer metadata to `0.8.1-beta.6`.
 
+
+## Windows Variant 4 hardening
+
+### Windows Variant 4 hardening
+
+- Finalized the free local Windows hardening approach without Azure or a paid certificate.
+- Kept the One-Click Release workflow unchanged for the user.
+- Standardized PyInstaller on the Onedir layout with `_internal`, the Python runtime DLL and `base_library.zip`.
+- Disabled UPX and embedded a modern Windows application manifest.
+- EGM now runs as the current user (`asInvoker`) and declares Per-Monitor V2 DPI support, long-path awareness and Segment Heap.
+- Standardized Windows metadata to publisher label `Whisibear`, product `Exiles Game Manager` and version `0.8.1-beta.6`.
+- Added strict metadata, PE-file, Onedir-runtime and startup validation.
+- Added local Microsoft Defender scans for the final application directory, Setup executable and portable ZIP.
+- Defender validation never disables protection and never adds exclusions.
+- Code signing remains optional for a future trusted certificate but is not required for local Variant-4 releases.
+
+
+## Complete release metadata flow fix
+
+### Complete release metadata flow fix
+
+- Fixed the One-Click Release source template that restored the obsolete company value during every build.
+- Standardized application, UpdateWorker, installer and CI metadata on publisher label `Whisibear`.
+- Added semantic ProductVersion metadata to the native UpdateWorker.
+- Removed hard-coded Beta 6 version checks from the local installer build and GitHub Actions.
+- Future versions are now read dynamically from `app/version.py`.
+- Added release-blocking validation for stale or conflicting metadata before packaging.
+
+
+## Public source manifest export fix
+
+### Public source manifest export fix
+
+- Added `ExilesGameManager.manifest` to the minimal GitHub source export.
+- Added the manifest to public-source completeness validation.
+- Added the manifest to GitHub publish preflight checks.
+- Fixed the final One-Click Release failure during exported-source version validation.
+
+
+## Public export internal-validation fix
+
+### Public export internal-validation fix
+
+- Fixed exported-source validation when the internal One-Click Release script is intentionally excluded from the public repository.
+- `check_app_version.py` now validates the One-Click metadata template only when the internal script exists.
+- The minimal GitHub source export remains clean and does not expose internal release automation.
+- Full development builds continue to validate the internal One-Click metadata template.
+

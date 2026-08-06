@@ -107,6 +107,7 @@ CHANGELOG.md
 CREDITS.md
 desktop_app.py
 ExilesGameManager.ico
+ExilesGameManager.manifest
 ExilesGameManager.spec
 GETTING_STARTED.md
 GITHUB_RELEASE.md

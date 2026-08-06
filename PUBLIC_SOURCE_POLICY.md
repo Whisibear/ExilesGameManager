@@ -50,3 +50,5 @@ Release binaries are distributed exclusively through GitHub Releases as installe
 - Access and refresh tokens are encrypted locally with Windows DPAPI.
 - OAuth token files, runtime configuration and diagnostic data are excluded from the public source export.
 
+
+- `ExilesGameManager.manifest` — Windows application manifest required for reproducible packaging and metadata validation.

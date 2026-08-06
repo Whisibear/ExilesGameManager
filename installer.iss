@@ -1,7 +1,7 @@
 #define MyAppName "Exiles Game Manager"
 #define MyAppVersion "0.8.1-beta.6"
 #define MyWindowsVersion "0.8.1.6"
-#define MyAppPublisher "Whisibear EGM"
+#define MyAppPublisher "Whisibear"
 #define MyAppURL "https://github.com/Whisibear/ExilesGameManager"
 #define MyAppExeName "ExilesGameManager.exe"
 
@@ -19,7 +19,7 @@ VersionInfoCompany={#MyAppPublisher}
 VersionInfoDescription={#MyAppName} Setup
 VersionInfoProductName={#MyAppName}
 VersionInfoProductVersion={#MyWindowsVersion}
-VersionInfoCopyright=Copyright (c) 2026 Kvitekvist; Copyright (c) 2026 Whisibear EGM
+VersionInfoCopyright=Copyright © 2026 Whisibear
 DefaultDirName={autopf}\Exiles Game Manager
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
@@ -44,6 +44,10 @@ UsePreviousAppDir=yes
 UsePreviousTasks=yes
 SetupLogging=yes
 Uninstallable=yes
+#ifdef EGM_SIGNED_BUILD
+SignTool=egmsign
+SignedUninstaller=yes
+#endif
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -97,8 +101,7 @@ Name: "{commonappdata}\ExilesGameManager\Servers"; Permissions: users-modify
 Name: "{commonappdata}\ExilesGameManager\data\steamcmd"; Permissions: users-modify
 
 [Files]
-Source: "dist\ExilesGameManager.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "dist\EGMUpdateWorker.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "dist\ExilesGameManager\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "ExilesGameManager.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "Install_Prerequisites.ps1"; DestDir: "{tmp}"; Flags: deleteafterinstall
 Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion

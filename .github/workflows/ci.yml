@@ -96,7 +96,7 @@ jobs:
         shell: pwsh
         run: |
           $workerScript = Join-Path $PWD "scripts\Build-EGMUpdateWorker.ps1"
-          $workerOutput = Join-Path $PWD "dist\EGMUpdateWorker.exe"
+          $workerOutput = Join-Path $PWD "dist\ExilesGameManager\EGMUpdateWorker.exe"
 
           if (-not (Test-Path -LiteralPath $workerScript -PathType Leaf)) {
             throw "UpdateWorker build script not found: $workerScript"
@@ -111,8 +111,8 @@ jobs:
         shell: pwsh
         run: |
           $executables = @(
-            "dist\ExilesGameManager.exe",
-            "dist\EGMUpdateWorker.exe"
+            "dist\ExilesGameManager\ExilesGameManager.exe",
+            "dist\ExilesGameManager\EGMUpdateWorker.exe"
           )
 
           foreach ($path in $executables) {
@@ -133,15 +133,65 @@ jobs:
             Write-Host "[OK] $path ($($file.Length) bytes)"
           }
 
+          $manifest = "ExilesGameManager.manifest"
+          if (-not (Test-Path -LiteralPath $manifest -PathType Leaf)) {
+            throw "Windows application manifest is missing: $manifest"
+          }
+          $manifestText = Get-Content -LiteralPath $manifest -Raw
+          if ($manifestText -notmatch 'requestedExecutionLevel level="asInvoker"') {
+            throw "Windows manifest does not use asInvoker."
+          }
+          if ($manifestText -notmatch '<longPathAware[^>]*>true</longPathAware>') {
+            throw "Windows manifest is not long-path aware."
+          }
+
+          $appVersion = [System.Diagnostics.FileVersionInfo]::GetVersionInfo(
+            (Resolve-Path -LiteralPath "dist\ExilesGameManager\ExilesGameManager.exe")
+          )
+          if ($appVersion.CompanyName -ne "Whisibear") {
+            throw "Unexpected CompanyName: $($appVersion.CompanyName)"
+          }
+          $versionSource = Get-Content -LiteralPath "app\version.py" -Raw
+          $versionMatch = [regex]::Match(
+            $versionSource,
+            'APP_VERSION\s*=\s*"(?<version>[^"]+)"'
+          )
+          if (-not $versionMatch.Success) {
+            throw "APP_VERSION could not be read from app\version.py"
+          }
+          $expectedVersion = $versionMatch.Groups['version'].Value
+
+          if ($appVersion.ProductVersion -ne $expectedVersion) {
+            throw "Unexpected ProductVersion: $($appVersion.ProductVersion); expected: $expectedVersion"
+          }
+
+          $workerVersion = [System.Diagnostics.FileVersionInfo]::GetVersionInfo(
+            (Resolve-Path -LiteralPath "dist\ExilesGameManager\EGMUpdateWorker.exe")
+          )
+          if ($workerVersion.CompanyName -ne "Whisibear") {
+            throw "Unexpected UpdateWorker CompanyName: $($workerVersion.CompanyName)"
+          }
+          if ($workerVersion.ProductName -ne "Exiles Game Manager") {
+            throw "Unexpected UpdateWorker ProductName: $($workerVersion.ProductName)"
+          }
+          if ($workerVersion.ProductVersion -ne $expectedVersion) {
+            throw "Unexpected UpdateWorker ProductVersion: $($workerVersion.ProductVersion); expected: $expectedVersion"
+          }
+
+          $internal = "dist\ExilesGameManager\_internal"
+          if (-not (Test-Path -LiteralPath $internal -PathType Container)) { throw "PyInstaller Onedir runtime directory missing: $internal" }
+          if (-not (Get-ChildItem -LiteralPath $internal -Filter "python3*.dll" -File)) { throw "Python runtime DLL missing from Onedir build." }
+          if (-not (Test-Path -LiteralPath "$internal\base_library.zip" -PathType Leaf)) { throw "base_library.zip missing from Onedir build." }
+
           $installerSource = Get-Content -LiteralPath "installer.iss" -Raw
-          if ($installerSource -notmatch 'Source:\s*"dist\\EGMUpdateWorker\.exe"') {
-            throw "installer.iss does not package dist\EGMUpdateWorker.exe"
+          if ($installerSource -notmatch 'Source:\s*"dist\\ExilesGameManager\\\*"') {
+            throw "installer.iss does not package dist\ExilesGameManager\EGMUpdateWorker.exe"
           }
 
       - name: Smoke test native UpdateWorker startup
         shell: pwsh
         run: |
-          $worker = Resolve-Path -LiteralPath "dist\EGMUpdateWorker.exe"
+          $worker = Resolve-Path -LiteralPath "dist\ExilesGameManager\EGMUpdateWorker.exe"
           $fallbackLog = Join-Path (Split-Path -Parent $worker) "update_worker_fallback.log"
           Remove-Item -LiteralPath $fallbackLog -Force -ErrorAction SilentlyContinue
 
@@ -160,7 +210,7 @@ jobs:
       - name: Smoke test packaged health endpoint
         shell: pwsh
         run: |
-          $proc = Start-Process -FilePath "dist\ExilesGameManager.exe" -PassThru
+          $proc = Start-Process -FilePath "dist\ExilesGameManager\ExilesGameManager.exe" -PassThru
           try {
             $ok = $false
             for ($i = 0; $i -lt 30; $i++) {
@@ -226,5 +276,5 @@ jobs:
           if-no-files-found: error
           retention-days: 7
           path: |
-            dist/EGMUpdateWorker.exe
+            dist/ExilesGameManager/**
             installer_output/ExilesGameManager-Setup-*.exe
