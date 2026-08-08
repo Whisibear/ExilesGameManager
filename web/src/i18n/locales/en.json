@@ -412,7 +412,71 @@
   },
   "settings": {
     "deploy": {
-      "queryPort": "Steam Query Port"
+      "queryPort": "Steam Query Port",
+      "gameSelection": "Game",
+      "availableNow": "Available now",
+      "preparedNotInstallable": "Prepared — installation pending",
+      "providerPending": "This edition is already modeled with its Steam branch, executable paths, port roles and capabilities. Deployment stays disabled until the Conan runtime, configuration and RCON provider are complete.",
+      "creationMethod": "Creation Method",
+      "freshSteamCmd": "Fresh download via SteamCMD",
+      "cleanCopyOf": "Clean local copy of: {{name}}",
+      "cloneHint": "A local copy reuses the server binaries and excludes saves, mods, logs and runtime data. The source server must be stopped and use the same game edition.",
+      "descriptionGeneric": "Creates a fully isolated dedicated server using the selected game provider.",
+      "descriptionPalworld": "Installs a fresh, fully isolated Palworld Dedicated Server through SteamCMD with its own folder, mods and ports.",
+      "descriptionConanEnhanced": "Prepares a Conan Exiles Enhanced dedicated server using the current Steam branch and provider-specific ports.",
+      "descriptionConanLegacy": "Prepares a Conan Exiles Legacy dedicated server using the Conan-Exiles-Legacy Steam branch.",
+      "placeholderGeneric": "My Game Server",
+      "placeholderPalworld": "My Palworld Server",
+      "placeholderConanEnhanced": "My Conan Enhanced Server",
+      "placeholderConanLegacy": "My Conan Legacy Server",
+      "hintMultiGame": "EGM validates provider-specific TCP/UDP ports against registered instances and active host sockets, then creates the matching Windows Firewall profile.",
+      "defaultLocationValue": "Default: {{path}}",
+      "waitGameCaption": "Use ← → and Space while your server downloads...",
+      "description": "Creates a fully isolated dedicated server using the selected game provider.",
+      "deployedTitle": "Server deployed",
+      "deployedMessage": "{{name}} is ready.",
+      "startFailedFallback": "The deployment could not be started.",
+      "folderPickerFailedFallback": "The folder picker could not be opened.",
+      "title": "Deploy a new server",
+      "serverName": "Server name",
+      "gamePort": "Game Port",
+      "restApiPort": "REST API Port",
+      "maxPlayers": "Maximum players",
+      "installLocation": "Install location",
+      "defaultFolder": "Default ExilesGameManager server folder",
+      "default": "Default",
+      "browse": "Browse",
+      "hint": "ExilesGameManager creates a server folder named after this server in the selected location. Each server needs its own game/API ports when multiple servers run at the same time.",
+      "deploying": "Deploying...",
+      "done": "Done - the new server is now active.",
+      "cancel": "Cancel",
+      "deploy": "Deploy",
+      "close": "Close"
+    },
+    "import": {
+      "importedTitle": "Server imported",
+      "detectedMessage": "Found and registered via your Steam library.",
+      "detectFailedFallback": "No Palworld server was found in any Steam library.",
+      "importFailedFallback": "Could not import that folder.",
+      "title": "Import an Existing Server",
+      "description": "Register an existing dedicated server. EGM validates the selected game layout before importing it.",
+      "scanning": "Scanning Steam libraries...",
+      "autoDetect": "Auto-Detect via Steam",
+      "orManually": "or enter manually",
+      "serverName": "Server Name",
+      "serverNamePlaceholder": "My Game Server",
+      "installFolder": "Install Folder",
+      "browse": "Browse",
+      "cancel": "Cancel",
+      "importing": "Importing...",
+      "import": "Import",
+      "notDetected": "No existing server installation was detected. Select a server folder manually.",
+      "analysis": {
+        "configUnavailableTitle": "Server Config unavailable",
+        "configUnavailableMessage": "No Conan server configuration was found under ConanSandbox\\Saved\\Config\\WindowsServer. EGM imported the server, but settings cannot be read until Conan creates or restores these files.",
+        "saveUnavailableTitle": "Server Save unavailable",
+        "saveUnavailableMessage": "No Conan game database was found under ConanSandbox\\Saved. This can be normal for a fresh installation; start the server once or restore a backup before expecting existing world data."
+      }
     }
   },
   "steamCmdAuth": {
@@ -484,7 +548,8 @@
     "steamWishlist": {
       "title": "Steam Workshop Wishlist",
       "description": "Steam Workshop requests are managed separately from Nexus Mods. The super admin downloads approved items through SteamCMD and installs them for the selected server.",
-      "empty": "No Steam Workshop mods are waiting for approval."
+      "empty": "No Steam Workshop mods are waiting for approval.",
+      "runtimeDependencyNotice": "Workshop installation only installs the selected Workshop item. Mods that require UE4SS need the current UE4SS Experimental (Palworld) installed from Steam Workshop. Mods that require PalSchema additionally need PalSchema installed from Steam Workshop."
     },
     "card": {
       "deployedByPalworld": "Deployed by Palworld",
@@ -520,6 +585,10 @@
       "verified": "Runtime verified",
       "warning": "Runtime unconfirmed",
       "failed": "Runtime failed"
+    },
+    "ue4ss": {
+      "workshopDependencyNotice": "Steam Workshop mods do not install runtime dependencies automatically. If a Workshop mod requires UE4SS, install the current UE4SS Experimental (Palworld) from Steam Workshop. If it requires PalSchema, install PalSchema from Steam Workshop as well.",
+      "legacyCleanupNotice": "Before installing the current UE4SS Experimental (Palworld) version from Steam Workshop, uninstall any old UE4SS installation from this panel first. Leftover legacy UE4SS files can cause PalSchema and dependent mods to fail."
     }
   },
   "updates": {
@@ -552,5 +621,21 @@
   },
   "worldSettings": {
     "title": "Server Settings"
+  },
+  "serverControl": {
+    "liveConsole": {
+      "title": "Live Console",
+      "connected": "Following ConanSandbox.log in real time.",
+      "waiting": "Waiting for ConanSandbox.log...",
+      "empty": "No server output yet.",
+      "commandPlaceholder": "RCON command, e.g. ShowPlayers...",
+      "sending": "Sending...",
+      "send": "Send",
+      "clear": "Clear",
+      "security": "RCON connects only to 127.0.0.1. The RCON password never reaches the browser.",
+      "rconConnected": "RCON connected",
+      "rconConfigured": "RCON configured",
+      "rconUnavailable": "RCON unavailable"
+    }
   }
 }

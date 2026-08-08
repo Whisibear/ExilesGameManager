@@ -66,7 +66,7 @@ logging.getLogger("uvicorn.access").addFilter(_PollingNoiseFilter())
 
 instance_store.migrate_legacy_single_instance()
 
-app = FastAPI(title="Exiles Game Manager Backend", version="0.8.1-beta.7")
+app = FastAPI(title="Exiles Game Manager Backend", version="0.8.1-beta.8")
 
 
 @app.middleware("http")
@@ -186,5 +186,15 @@ if _FRONTEND_DIR.is_dir():
         candidate = (_FRONTEND_DIR / full_path).resolve()
         in_bounds = candidate == _resolved_frontend_dir or _resolved_frontend_dir in candidate.parents
         if full_path and in_bounds and candidate.is_file():
-            return FileResponse(candidate)
-        return FileResponse(_FRONTEND_DIR / "index.html")
+            return FileResponse(
+                candidate,
+                headers={"Cache-Control": "no-cache"},
+            )
+        return FileResponse(
+            _FRONTEND_DIR / "index.html",
+            headers={
+                "Cache-Control": "no-store, no-cache, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0",
+            },
+        )

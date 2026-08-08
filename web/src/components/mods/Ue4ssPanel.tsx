@@ -98,6 +98,21 @@ export function Ue4ssPanel() {
         })}
       </p>
 
+      <div className="mb-4 space-y-2">
+        <div className="rounded-md border border-mana-500/30 bg-mana-500/5 px-3 py-2 text-xs leading-relaxed text-mana-200/85">
+          {t("mods.ue4ss.workshopDependencyNotice", {
+            defaultValue:
+              "Steam Workshop mods do not install runtime dependencies automatically. If a Workshop mod requires UE4SS, install the current UE4SS Experimental (Palworld) from Steam Workshop. If it requires PalSchema, install PalSchema from Steam Workshop as well.",
+          })}
+        </div>
+        <div className="rounded-md border border-gold-500/30 bg-gold-500/5 px-3 py-2 text-xs leading-relaxed text-gold-200/85">
+          {t("mods.ue4ss.legacyCleanupNotice", {
+            defaultValue:
+              "Before installing the current UE4SS Experimental (Palworld) version from Steam Workshop, uninstall any old UE4SS installation from this panel first. Leftover legacy UE4SS files can cause PalSchema and dependent mods to fail.",
+          })}
+        </div>
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-stone-700 bg-abyss-900/40 px-4 py-3">
         <div className="flex items-center gap-2.5">
           {status.installed ? (

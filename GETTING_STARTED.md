@@ -83,3 +83,7 @@ When reporting a problem, include:
 - the exact action that failed
 - the generated diagnostic ZIP
 - screenshots with credentials, public IP addresses and private tokens removed
+
+## Closing the installed application
+
+The installed Windows build keeps a tray icon in the notification area. Use **Quit / Beenden** from that tray menu to close EGM cleanly. Closing a browser tab does not stop EGM, and quitting EGM does not stop running Palworld or Conan dedicated servers.

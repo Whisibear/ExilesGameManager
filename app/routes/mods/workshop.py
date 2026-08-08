@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 from app.auth_deps import require_super_admin
 from app.routes.mods._shared import require_active_instance
-from app.services import steam_workshop, task_queue
+from app.services import conan_workshop, instance_store, steam_workshop, task_queue
 
 router = APIRouter()
 
@@ -18,7 +18,11 @@ class WorkshopRequest(BaseModel):
 
 @router.post("/workshop/details")
 async def workshop_details(body: WorkshopRequest) -> dict[str, Any]:
+    instance = require_active_instance()
+    game = instance_store.get_game_definition(instance)
     try:
+        if game.family == "conan_exiles":
+            return await conan_workshop.get_details(instance, body.workshopId)
         return await steam_workshop.get_details(body.workshopId)
     except (steam_workshop.WorkshopError, RuntimeError) as exc:
         raise HTTPException(status_code=getattr(exc, "status_code", 500), detail=getattr(exc, "message", str(exc))) from exc
@@ -48,6 +52,9 @@ async def open_steamcmd_console() -> dict[str, object]:
 @router.get("/workshop/cache", dependencies=[Depends(require_super_admin)])
 async def scan_workshop_cache() -> list[dict[str, Any]]:
     instance = require_active_instance()
+    game = instance_store.get_game_definition(instance)
+    if game.family == "conan_exiles":
+        return await conan_workshop.scan_downloaded_cache(instance)
     return await steam_workshop.scan_downloaded_cache(instance)
 
 
@@ -55,7 +62,8 @@ async def scan_workshop_cache() -> list[dict[str, Any]]:
 async def install_workshop_from_cache(workshop_id: str) -> list[dict[str, Any]]:
     instance = require_active_instance()
     try:
-        cached = await steam_workshop.scan_downloaded_cache(instance)
+        game = instance_store.get_game_definition(instance)
+        cached = await (conan_workshop.scan_downloaded_cache(instance) if game.family == "conan_exiles" else steam_workshop.scan_downloaded_cache(instance))
         item = next((entry for entry in cached if entry["workshopId"] == workshop_id), None)
         if not item:
             raise HTTPException(status_code=404, detail="Workshop item was not found in the SteamCMD cache.")
@@ -88,7 +96,10 @@ async def check_all_mod_updates() -> dict[str, Any]:
 @router.get("/workshop/check-updates", dependencies=[Depends(require_super_admin)])
 async def check_workshop_updates() -> dict[str, Any]:
     instance = require_active_instance()
+    game = instance_store.get_game_definition(instance)
     try:
+        if game.family == "conan_exiles":
+            return await conan_workshop.check_updates(instance)
         return await steam_workshop.check_updates(instance)
     except (steam_workshop.WorkshopError, RuntimeError) as exc:
         raise HTTPException(status_code=getattr(exc, "status_code", 500), detail=getattr(exc, "message", str(exc))) from exc

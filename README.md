@@ -1,4 +1,22 @@
+
+#
+### Conan import diagnostics
+
+When an existing Conan Exiles server is imported, EGM validates the server layout and reports missing `WindowsServer` configuration or world database files without deleting or rewriting the imported installation. All in-app toast notifications remain visible for 10 seconds to keep operational messages readable.
+
+## Conan RCON reliability
+
+EGM does not continuously authenticate against Conan RCON. The Live Console reads `ConanSandbox.log` independently and displays the configured loopback RCON endpoint. A real RCON connection is created only when an administrator explicitly sends a command or broadcast, preventing background connection storms while keeping credentials backend-only.
+
+## Conan RCON reliability
+
+Conan Exiles instances use backend-only RCON on `127.0.0.1`. The Live Console shows the authenticated RCON connection state, accepts raw Conan RCON commands such as `ShowPlayers`, and keeps the RCON password out of the browser and Activity Center.
+
 # Exiles Game Manager
+
+## Public Beta 8 release hardening
+
+Public Beta 8 (`0.8.1-beta.8`) keeps the E.11 Windows system-tray and graceful shutdown lifecycle and fixes the One-Click Release post-build contract validation. Update, Repair and Uninstall can request a clean EGM shutdown without stopping external Palworld or Conan dedicated servers. The installer/release metadata is synchronized to Windows version `0.8.1.8`.
 
 Exiles Game Manager (EGM) is a Windows platform for installing, importing and operating dedicated game servers through one modern control panel. The current public beta provides full Palworld workflows and is being prepared for additional games, beginning with Conan Exiles.
 
@@ -22,7 +40,7 @@ Exiles Game Manager (EGM) is a Windows platform for installing, importing and op
 | Game | Status |
 |---|---|
 | Palworld | Public beta |
-| Conan Exiles | Planned next integration |
+| Conan Exiles | Beta integration: Enhanced + Legacy deployment, runtime control, RCON and Live Console |
 | Additional dedicated servers | Planned through the multi-game module architecture |
 
 ## Screenshots
@@ -69,6 +87,10 @@ Exiles Game Manager (EGM) is a Windows platform for installing, importing and op
 
 The packaged application serves its own frontend. End users do not need to install Node.js. SteamCMD prerequisites are managed by the installer and EGM workflows.
 
+## Windows system tray and shutdown
+
+Installed EGM runs as a background Windows application with a notification-area icon. The tray menu can reopen EGM or the dashboard and provides **Quit / Beenden** for a clean application shutdown. Quitting EGM stops the EGM web/backend process only; managed Palworld and Conan dedicated servers continue running until they are stopped explicitly from EGM or by the server operator. Setup Update, Repair and Uninstall use the same graceful-shutdown signal before replacing application files.
+
 ## Where data is stored
 
 Application binaries are installed under the directory selected in Setup. Per-user application state is stored under:
@@ -92,6 +114,13 @@ Managed dedicated-server installations remain separate under:
 ```
 
 During uninstall, EGM asks separately whether LocalAppData application data and machine-wide managed server data should be removed. Choosing **No** preserves the selected data for a later reinstall.
+
+
+## Palworld Workshop runtime dependencies
+
+Steam Workshop installation and runtime dependencies are intentionally separate. Installing a Workshop item does not automatically install UE4SS or PalSchema. Workshop mods that require UE4SS need the current **UE4SS Experimental (Palworld)** installed from the Palworld Steam Workshop. Mods that list **PalSchema** as a dependency also require **PalSchema** to be installed from the Palworld Steam Workshop. The EGM UE4SS panel is used to uninstall an older UE4SS installation before switching to the current Workshop version.
+
+Before switching from an older UE4SS installation to the current Experimental Palworld build, uninstall the old UE4SS from the EGM panel first. Legacy UE4SS files can conflict with the current Palworld-specific layout and prevent PalSchema or dependent mods from loading correctly.
 
 ## Nexus Mods integration
 
@@ -133,3 +162,8 @@ Windows executable reputation, SmartScreen, antivirus detections, checksum verif
 ## License and attribution
 
 EGM is distributed under the MIT License. The current project is maintained by Whisibear while the original MIT attribution is preserved. See [`LICENSE`](LICENSE), [`COPYRIGHT_AND_ATTRIBUTION.md`](COPYRIGHT_AND_ATTRIBUTION.md), [`CREDITS.md`](CREDITS.md) and [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+
+
+### RCON transport
+
+Conan Exiles uses EGM's backend-only, mcrcon-compatible Source/Minecraft RCON transport. No external `mcrcon.exe` installation is required. The transport is intentionally game-neutral so future ARK: Survival Evolved and ARK: Survival Ascended providers can use the same protocol layer with game-specific commands and configuration.

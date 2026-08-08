@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from app import storage
+from app.games import DEFAULT_GAME_ID, get_game_or_default, require_deployable_game
 from app.paths import data_dir
 from app.services import palworld_settings
 
@@ -126,6 +127,56 @@ def _dedupe_data(data: dict[str, Any]) -> tuple[dict[str, Any], bool]:
         if instance.get("serverPath") != canonical_path:
             instance["serverPath"] = canonical_path
             changed = True
+        game = get_game_or_default(instance.get("gameId"))
+        if instance.get("gameId") != game.id:
+            instance["gameId"] = game.id
+            changed = True
+        if instance.get("gameFamily") != game.family:
+            instance["gameFamily"] = game.family
+            changed = True
+        if instance.get("gameEdition") != game.edition:
+            instance["gameEdition"] = game.edition
+            changed = True
+        if not isinstance(instance.get("ports"), dict):
+            game_port = int(
+                instance.get("gamePort")
+                or game.default_ports.get("game", 8211)
+            )
+            management_port = int(
+                instance.get("rconPort")
+                or game.default_ports.get(
+                    "restApi",
+                    game.default_ports.get("rcon", 8212),
+                )
+            )
+            query_port = int(
+                instance.get("queryPort")
+                or game.default_ports.get("query", 8213)
+            )
+            if game.id == "palworld":
+                instance["ports"] = {
+                    "game": game_port,
+                    "restApi": management_port,
+                    "query": query_port,
+                }
+            else:
+                instance["ports"] = {
+                    "game": game_port,
+                    "query": query_port,
+                    "rcon": management_port,
+                }
+                pinger = next(
+                    (
+                        definition
+                        for definition in game.port_definitions
+                        if definition.key == "pinger"
+                        and definition.relative_to == "game"
+                    ),
+                    None,
+                )
+                if pinger:
+                    instance["ports"]["pinger"] = game_port + pinger.offset
+            changed = True
         if "usePerfThreads" not in instance:
             instance["usePerfThreads"] = bool(instance.get("performanceFlags", True))
             changed = True
@@ -209,6 +260,19 @@ def get_active() -> dict[str, Any] | None:
     return get(active_id) if active_id else None
 
 
+def get_game_definition(instance: dict[str, Any]):
+    return get_game_or_default(instance.get("gameId"))
+
+
+def get_active_game_definition():
+    active = get_active()
+    return get_game_definition(active) if active else None
+
+
+def supports_capability(instance: dict[str, Any], capability: str) -> bool:
+    return bool(get_game_definition(instance).capabilities.to_dict().get(capability, False))
+
+
 def instance_dir(instance_id: str) -> Path:
     d = INSTANCES_DIR / instance_id
     d.mkdir(parents=True, exist_ok=True)
@@ -224,7 +288,10 @@ def create_instance(
     rcon_port: int = 8212,
     query_port: int | None = None,
     use_query_port: bool = True,
+    game_id: str = DEFAULT_GAME_ID,
+    ports: dict[str, int] | None = None,
 ) -> dict[str, Any]:
+    game = require_deployable_game(game_id)
     data = _load_clean()
     canonical_path = _canonical_server_path(server_path)
     path_key = _server_path_key(canonical_path)
@@ -238,13 +305,42 @@ def create_instance(
     game_port, rcon_port, query_port = allocate_instance_ports(
         data["instances"], game_port=game_port, rest_port=rcon_port, query_port=query_port
     )
+    normalized_ports = dict(ports or {})
+    if not normalized_ports:
+        if game.id == "palworld":
+            normalized_ports = {
+                "game": game_port,
+                "restApi": rcon_port,
+                "query": query_port,
+            }
+        else:
+            normalized_ports = {
+                "game": game_port,
+                "rcon": rcon_port,
+                "query": query_port,
+            }
+            pinger = next(
+                (
+                    definition
+                    for definition in game.port_definitions
+                    if definition.key == "pinger"
+                ),
+                None,
+            )
+            if pinger and pinger.relative_to == "game":
+                normalized_ports["pinger"] = game_port + pinger.offset
+
     instance = {
         "id": f"srv-{uuid.uuid4().hex[:10]}",
         "name": name,
         "serverPath": canonical_path,
         "source": source,  # "deployed" | "steam" | "manual"
+        "gameId": game.id,
+        "gameFamily": game.family,
+        "gameEdition": game.edition,
         "gamePort": game_port,
         "rconPort": rcon_port,
+        "ports": normalized_ports,
         "communityServer": False,
         "performanceFlags": True,
         "usePerfThreads": True,
@@ -312,6 +408,59 @@ def validate_unique_ports(
         raise ValueError("Port already used by another server: " + ", ".join(map(str, conflicts)))
 
 
+
+def update_network_ports(
+    instance_id: str,
+    *,
+    game_id: str | None = None,
+    GamePort: int | None = None,
+    QueryPort: int | None = None,
+    RconPort: int | None = None,
+) -> None:
+    data = _load_clean()
+    for instance in data["instances"]:
+        if instance["id"] != instance_id:
+            continue
+
+        game = get_game_or_default(game_id or instance.get("gameId"))
+        ports = dict(instance.get("ports") or {})
+
+        if GamePort is not None:
+            value = int(GamePort)
+            instance["gamePort"] = value
+            ports["game"] = value
+            pinger = next(
+                (
+                    definition
+                    for definition in game.port_definitions
+                    if definition.key == "pinger"
+                    and definition.relative_to == "game"
+                ),
+                None,
+            )
+            if pinger:
+                ports["pinger"] = value + pinger.offset
+
+        if QueryPort is not None:
+            value = int(QueryPort)
+            instance["queryPort"] = value
+            ports["query"] = value
+
+        if RconPort is not None:
+            value = int(RconPort)
+            instance["rconPort"] = value
+            if game.id == "palworld":
+                ports["restApi"] = value
+            else:
+                ports["rcon"] = value
+
+        instance["ports"] = ports
+        _save(data)
+        return
+
+    raise ValueError(f"Unknown instance id: {instance_id}")
+
+
 def update_game_port(instance_id: str, game_port: int) -> None:
     """Stores the Super Admin-owned game port for display, reinstall/update
     memory, and as the launch-time port once the host has chosen a custom
@@ -328,6 +477,9 @@ def update_game_port(instance_id: str, game_port: int) -> None:
     for i in data["instances"]:
         if i["id"] == instance_id:
             i["gamePort"] = game_port
+            ports = dict(i.get("ports") or {})
+            ports["game"] = game_port
+            i["ports"] = ports
     _save(data)
 
 
@@ -350,6 +502,9 @@ def update_query_port(instance_id: str, query_port: int) -> None:
             if query_port == game_port:
                 raise ValueError("Steam query port must be different from the game port.")
             i["queryPort"] = query_port
+            ports = dict(i.get("ports") or {})
+            ports["query"] = query_port
+            i["ports"] = ports
         elif _as_port(i.get("queryPort")) == query_port:
             raise ValueError("Steam query port is already used by another server.")
     _save(data)

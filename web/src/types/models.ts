@@ -63,12 +63,24 @@ export interface SettingField {
   options: { value: string; label: string; description: string | null }[] | null;
   sensitive: boolean;
   popular: boolean;
+  minimum?: number | null;
+  maximum?: number | null;
+  step?: number | null;
+  restartRequired?: boolean;
+  sourceFile?: string;
+  sourceSection?: string;
+  sourceKey?: string;
+  dynamic?: boolean;
 }
 
 export type ServerRunState = "online" | "offline" | "starting" | "stopping" | "restarting";
 
 export interface ServerStatus {
   state: ServerRunState;
+  gameId?: string;
+  gameEdition?: GameEdition;
+  providerId?: string;
+  capabilities?: GameCapabilities;
   map: string;
   uptimeSeconds: number;
   cpuPercent: number;
@@ -445,9 +457,21 @@ export interface ModWishlistRequest {
 export type ModsPathSource = "override" | "derived" | null;
 export type InstanceSource = "steam" | "manual" | "deployed";
 
+export type GameAvailability = "available" | "planned";
+export type GameEdition = "standard" | "enhanced" | "legacy";
+export interface GameCapabilities { server_control:boolean; server_settings:boolean; steam_workshop:boolean; nexus_mods:boolean; live_console:boolean; rcon:boolean; rest_api:boolean; ue4ss:boolean; firewall_management:boolean; backups:boolean; performance_monitoring:boolean; }
+export interface GamePortDefinition { key:string; label:string; default:number; protocol:"TCP"|"UDP"; configurable:boolean; relative_to:string|null; offset:number; firewall:boolean; }
+export interface GameDefinition { id:string; family:string; edition:GameEdition; label:string; shortLabel:string; availability:GameAvailability; deployable:boolean; steamServerAppId:number|null; steamWorkshopAppId:number|null; steamBranch:string|null; executableNames:string[]; defaultPorts:Record<string,number>; portDefinitions:GamePortDefinition[]; capabilities:GameCapabilities; }
+export interface GameCatalog { defaultGameId:string; games:GameDefinition[]; }
 export interface ServerInstance {
   id: string;
   name: string;
+  gameId: string;
+  gameFamily: string;
+  gameEdition: GameEdition;
+  gameLabel: string;
+  capabilities: GameCapabilities;
+  ports?: Record<string, number>;
   serverPath: string;
   source: InstanceSource;
   gamePort: number;
@@ -552,6 +576,9 @@ export interface WorkshopDetails {
 export interface InstanceOverviewItem {
   id: string;
   name: string;
+  gameId: string;
+  gameFamily: string;
+  gameLabel: string;
   state: ServerRunState;
   map: string;
   uptimeSeconds: number;

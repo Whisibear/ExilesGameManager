@@ -21,7 +21,7 @@ python -m venv .venv
 Run the development backend:
 
 ```powershell
-.\.venv\Scripts\python.exe Palworld_Server.py
+.\.venv\Scripts\python.exe EGM_Server.py
 ```
 
 ## Frontend development setup
@@ -52,3 +52,7 @@ The build process uses `ExilesGameManager.spec` for PyInstaller and `installer.i
 ## Runtime data
 
 Runtime data, user accounts, logs, SteamCMD files, server instances, saves, API credentials and generated build outputs are intentionally excluded from source control.
+
+## Phase E.11 tray packaging contract
+
+The frozen Windows build depends on `pystray` and Pillow. `ExilesGameManager.spec` must bundle the application icon and the Windows pystray backend. Release smoke tests set `EGM_SUPPRESS_BROWSER=1` and `EGM_SUPPRESS_TRAY=1` so automated packaging validation has no interactive side effects. The packaged process exposes the per-session named event `Local\ExilesGameManager.Quit`; Setup uses it for graceful Update/Repair/Uninstall shutdown before an EGM-only fallback.

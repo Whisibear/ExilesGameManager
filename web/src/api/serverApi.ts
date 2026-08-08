@@ -55,3 +55,31 @@ export async function startShutdownCountdown(seconds: number): Promise<{ seconds
 export async function cancelShutdownCountdown(): Promise<{ cancelled: boolean }> {
   return api.post<{ cancelled: boolean }>("/api/server/cancel-shutdown-countdown");
 }
+
+export interface LiveConsoleChunk {
+  cursor: number;
+  text: string;
+  reset: boolean;
+  available: boolean;
+  path: string;
+}
+
+export async function getLiveConsole(cursor?: number): Promise<LiveConsoleChunk> {
+  const query = cursor == null ? "" : `?cursor=${encodeURIComponent(cursor)}`;
+  return api.get<LiveConsoleChunk>(`/api/server/live-console${query}`);
+}
+
+export interface RconStatus {
+  ready: boolean;
+  host: string;
+  port: number;
+  error?: string;
+}
+
+export async function getRconStatus(): Promise<RconStatus> {
+  return api.get<RconStatus>("/api/server/rcon/status");
+}
+
+export async function executeRconCommand(command: string): Promise<{ response: string; command?: string; endpoint?: string }> {
+  return api.post<{ response: string; command?: string; endpoint?: string }>("/api/server/rcon", { command });
+}

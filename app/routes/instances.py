@@ -8,13 +8,23 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.auth_deps import require_super_admin
+from app.games import (
+    DEFAULT_GAME_ID,
+    is_valid_install,
+    list_games,
+    require_deployable_game,
+    require_game,
+)
 from app.services import (
+    conan_process_manager,
     deploy_jobs,
     instance_store,
+    instance_import_analyzer,
     local_config,
     native_dialog,
     privacy,
     process_manager,
+    port_allocator,
     steam_locator,
     instance_overview,
     ue4ss_installer,
@@ -25,16 +35,35 @@ logger = logging.getLogger("egm.instances")
 router = APIRouter()
 
 
+@router.get("/games")
+async def games_catalog() -> dict[str, Any]:
+    return {"defaultGameId": DEFAULT_GAME_ID, "games": [game.to_public_dict() for game in list_games()]}
+
+
+def _runtime_state(instance: dict[str, Any]) -> str:
+    game = instance_store.get_game_definition(instance)
+    if game.family == "conan_exiles":
+        return str(conan_process_manager.get_status(instance)["state"])
+    return str(process_manager.get_status(instance["id"])["state"])
+
+
 def _instance_view(instance: dict[str, Any]) -> dict[str, Any]:
     server_path = instance["serverPath"]
     effective_game_port = instance_store.resolve_game_port(instance)
     exists = Path(server_path).is_dir()
-    executable_found = (Path(server_path) / steam_locator.EXE_NAME).is_file()
+    game = instance_store.get_game_definition(instance)
+    executable_found = is_valid_install(game, Path(server_path))
     mods_info = local_config.get_mods_path_info(instance)
     mods_path = mods_info["path"]
     ue4ss_status = ue4ss_installer.get_status(instance)
     return {
         **instance,
+        "gameId": game.id,
+        "gameFamily": game.family,
+        "gameEdition": game.edition,
+        "gameLabel": game.label,
+        "capabilities": game.capabilities.to_dict(),
+        "ports": port_allocator.instance_ports(instance),
         "serverPath": privacy.mask_path(server_path),
         "gamePort": effective_game_port,
         "effectiveGamePort": effective_game_port,
@@ -183,8 +212,7 @@ async def remove_instance(instance_id: str, deleteFiles: bool = False) -> dict[s
     if not instance:
         raise HTTPException(status_code=404, detail="No such server instance.")
     if deleteFiles:
-        status = process_manager.get_status(instance_id)
-        if status["state"] != "offline":
+        if _runtime_state(instance) != "offline":
             raise HTTPException(status_code=400, detail="Stop this server before deleting its files.")
         server_path = Path(instance["serverPath"])
         if server_path.exists() and not server_path.is_dir():
@@ -217,18 +245,54 @@ async def open_instance_folder(instance_id: str) -> dict[str, Any]:
 class ImportRequest(BaseModel):
     name: str
     path: str
+    gameId: str = DEFAULT_GAME_ID
 
 
 @router.post("/import", dependencies=[Depends(require_super_admin)])
 async def import_existing(body: ImportRequest) -> dict[str, Any]:
+    try:
+        game = require_deployable_game(body.gameId)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     path = Path(body.path)
     if not path.is_dir():
         raise HTTPException(status_code=400, detail=f"'{body.path}' is not a folder that exists on this machine.")
-    if not (path / steam_locator.EXE_NAME).is_file():
-        raise HTTPException(status_code=400, detail=f"No {steam_locator.EXE_NAME} found in '{body.path}'.")
-    instance_store.create_instance(name=body.name, server_path=str(path), source="manual")
+    if not is_valid_install(game, path):
+        expected = ", ".join(game.executable_candidates)
+        raise HTTPException(
+            status_code=400,
+            detail=f"No valid {game.label} dedicated-server executable was found in '{body.path}'. Expected one of: {expected}",
+        )
+    detected_ports = instance_import_analyzer.detected_ports(path, game)
+    instance = instance_store.create_instance(
+        name=body.name,
+        server_path=str(path),
+        source="manual",
+        game_id=game.id,
+        game_port=int(detected_ports.get("game", game.default_ports.get("game", 8211))),
+        rcon_port=int(detected_ports.get("restApi", detected_ports.get("rcon", game.default_ports.get("restApi", game.default_ports.get("rcon", 8212))))),
+        query_port=int(detected_ports.get("query", game.default_ports.get("query", 8213))),
+        ports=detected_ports,
+    )
+    analysis = instance_import_analyzer.analyze(instance)
+    from app.services import activity_log
+    issue_codes = [issue.get("code", "unknown") for issue in analysis.get("issues", [])]
+    activity_log.log(
+        "warning" if issue_codes else "info",
+        instance["name"],
+        (
+            f"Imported {game.label} server with warnings: {', '.join(issue_codes)}."
+            if issue_codes
+            else f"Imported {game.label} server successfully; configuration and save data were detected."
+        ),
+        instance_id=instance["id"],
+    )
     data = instance_store.list_view()
-    return {"activeId": data["activeId"], "instances": [_instance_view(i) for i in data["instances"]]}
+    return {
+        "activeId": data["activeId"],
+        "instances": [_instance_view(i) for i in data["instances"]],
+        "importAnalysis": analysis,
+    }
 
 
 @router.post("/import/detect", dependencies=[Depends(require_super_admin)])
@@ -252,12 +316,13 @@ async def import_detected() -> dict[str, Any]:
 
 @router.post("/import/browse", dependencies=[Depends(require_super_admin)])
 async def browse_import() -> dict[str, Any]:
-    path = await asyncio.to_thread(native_dialog.pick_folder, "Select an existing Palworld Dedicated Server folder")
+    path = await asyncio.to_thread(native_dialog.pick_folder, "Select an existing dedicated-server folder")
     return {"path": path}
 
 
 class DeployRequest(BaseModel):
     name: str
+    gameId: str = DEFAULT_GAME_ID
     gamePort: int = 8211
     rconPort: int = 8212
     queryPort: int = 8213
@@ -275,13 +340,27 @@ async def get_default_deploy_location() -> dict[str, Any]:
 async def browse_deploy_parent() -> dict[str, Any]:
     path = await asyncio.to_thread(
         native_dialog.pick_folder,
-        "Select where new Palworld server folders should be created",
+        "Select where new dedicated-server folders should be created",
     )
     return {"path": path}
 
 
+@router.get("/deploy/ports", dependencies=[Depends(require_super_admin)])
+async def suggest_deploy_ports(gameId: str = DEFAULT_GAME_ID) -> dict[str, Any]:
+    try:
+        game = require_game(gameId)
+        rows = port_allocator.suggest_ports(game.id, instance_store.list_instances())
+    except (ValueError, port_allocator.PortAllocationError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"gameId": game.id, "ports": [row.to_dict() for row in rows]}
+
+
 @router.post("/deploy", dependencies=[Depends(require_super_admin)])
 async def deploy(body: DeployRequest) -> dict[str, Any]:
+    try:
+        game = require_deployable_game(body.gameId)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     if not body.name.strip():
         raise HTTPException(status_code=400, detail="Give the server a name.")
 
@@ -305,10 +384,12 @@ async def deploy(body: DeployRequest) -> dict[str, Any]:
         template = instance_store.get(body.templateInstanceId)
         if not template:
             raise HTTPException(status_code=404, detail="Template server instance not found.")
+        if template.get("gameId", DEFAULT_GAME_ID) != game.id:
+            raise HTTPException(status_code=400, detail="A clean copy can only be created from the same game and edition.")
         template_path = Path(template["serverPath"])
-        if not (template_path / steam_locator.EXE_NAME).is_file():
-            raise HTTPException(status_code=400, detail="The selected template is not a valid Palworld server installation.")
-        if process_manager.get_status(template["id"])["state"] != "offline":
+        if not is_valid_install(game, template_path):
+            raise HTTPException(status_code=400, detail=f"The selected template is not a valid {game.label} server installation.")
+        if _runtime_state(template) != "offline":
             raise HTTPException(status_code=400, detail="Stop the template server before creating a clean copy.")
         try:
             install_dir.resolve().relative_to(template_path.resolve())
@@ -317,15 +398,23 @@ async def deploy(body: DeployRequest) -> dict[str, Any]:
         else:
             raise HTTPException(status_code=400, detail="The new server folder cannot be inside the template server folder.")
 
-    used_ports = set()
-    for existing in instance_store.list_instances():
-        used_ports.update({instance_store.resolve_game_port(existing), int(existing.get("rconPort") or 8212), instance_store.resolve_query_port(existing)})
-    requested_ports = [body.gamePort, body.rconPort, body.queryPort]
-    if len(set(requested_ports)) != 3 or any(port in used_ports for port in requested_ports):
-        raise HTTPException(
-            status_code=400,
-            detail="Game, REST API, and Steam query ports must be unique and unused by every other instance.",
+    try:
+        requested_ports = {
+            "game": body.gamePort,
+            "query": body.queryPort,
+        }
+        if game.id == "palworld":
+            requested_ports["restApi"] = body.rconPort
+        else:
+            requested_ports["rcon"] = body.rconPort
+        port_allocator.validate_port_map(
+            game,
+            requested_ports,
+            reserved=port_allocator.reserved_ports(instance_store.list_instances()),
+            check_host=True,
         )
+    except port_allocator.PortAllocationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     job_id = deploy_jobs.start_deploy(
         name=body.name.strip(),
@@ -335,6 +424,7 @@ async def deploy(body: DeployRequest) -> dict[str, Any]:
         query_port=body.queryPort,
         max_players=body.maxPlayers,
         template_path=template_path,
+        game_id=game.id,
     )
     return {"jobId": job_id}
 

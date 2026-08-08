@@ -5,7 +5,6 @@ import { NotificationStack } from "@/components/ui/notification-stack";
 interface NotifyOptions {
   title: string;
   message?: string;
-  durationMs?: number;
 }
 
 interface NotificationContextValue {
@@ -53,8 +52,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         createdAt: now,
       };
       setItems((prev) => [...prev, entry]);
-      const duration = options.durationMs ?? 5000;
-      window.setTimeout(() => dismiss(id), duration);
+      window.setTimeout(() => dismiss(id), 10_000);
     },
     [dismiss]
   );

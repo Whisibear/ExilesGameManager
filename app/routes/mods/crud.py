@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from app.auth_deps import require_super_admin
 from app.routes.mods._shared import require_active_instance
 from app.services import (
+    conan_workshop,
     instance_store,
     local_config,
     mod_installer,
@@ -18,6 +19,7 @@ from app.services import (
     native_dialog,
     nexus_mod_service,
     steam_workshop,
+    task_queue,
 )
 from app.services.mod_installer import ModInstallError
 
@@ -49,6 +51,12 @@ async def get_mods() -> list[dict[str, Any]]:
     if len(filtered_mods) != len(mods):
         mods_store.save_mods(instance["id"], filtered_mods)
 
+    game = instance_store.get_game_definition(instance)
+    if game.family == "conan_exiles":
+        conan_mods = [mod for mod in filtered_mods if mod.get("workshopId")]
+        if len(conan_mods) != len(filtered_mods):
+            mods_store.save_mods(instance["id"], conan_mods)
+        return await conan_workshop.with_update_status(mods_store.sorted_mods(conan_mods), instance)
     workshop_mods = steam_workshop.discover_installed(instance, filtered_mods)
     return await _with_all_update_status(mods_store.sorted_mods(workshop_mods), instance)
 
@@ -93,6 +101,8 @@ async def browse_mods_path() -> dict[str, Any]:
 @router.post("/{mod_id}/enable")
 async def enable_mod(mod_id: str) -> list[dict[str, Any]]:
     instance = require_active_instance()
+    if instance_store.get_game_definition(instance).family == "conan_exiles":
+        return await task_queue.enqueue_and_wait("conan_workshop.enable", instance_id=instance["id"], payload={"modId": mod_id}, title="Enable Conan Workshop mod")
     mods = mods_store.load_mods(instance["id"])
     for m in mods:
         if m["id"] == mod_id and m["status"] != "broken":
@@ -135,6 +145,8 @@ async def enable_mod(mod_id: str) -> list[dict[str, Any]]:
 @router.post("/{mod_id}/disable")
 async def disable_mod(mod_id: str) -> list[dict[str, Any]]:
     instance = require_active_instance()
+    if instance_store.get_game_definition(instance).family == "conan_exiles":
+        return await task_queue.enqueue_and_wait("conan_workshop.disable", instance_id=instance["id"], payload={"modId": mod_id}, title="Disable Conan Workshop mod")
     mods = mods_store.load_mods(instance["id"])
     for m in mods:
         if m["id"] == mod_id:
@@ -159,6 +171,8 @@ async def disable_mod(mod_id: str) -> list[dict[str, Any]]:
 @router.post("/{mod_id}/remove")
 async def remove_mod(mod_id: str) -> list[dict[str, Any]]:
     instance = require_active_instance()
+    if instance_store.get_game_definition(instance).family == "conan_exiles":
+        return await task_queue.enqueue_and_wait("conan_workshop.remove", instance_id=instance["id"], payload={"modId": mod_id}, title="Remove Conan Workshop mod")
     mods = mods_store.load_mods(instance["id"])
     target = next((m for m in mods if m["id"] == mod_id), None)
     if target and target.get("workshopId"):
@@ -186,6 +200,8 @@ class ReorderRequest(BaseModel):
 @router.post("/reorder")
 async def reorder(body: ReorderRequest) -> list[dict[str, Any]]:
     instance = require_active_instance()
+    if instance_store.get_game_definition(instance).family == "conan_exiles":
+        return await task_queue.enqueue_and_wait("conan_workshop.reorder", instance_id=instance["id"], payload={"orderedIds": body.orderedIds}, title="Update Conan Workshop load order")
     mods = mods_store.load_mods(instance["id"])
     order = {mod_id: i + 1 for i, mod_id in enumerate(body.orderedIds)}
     for m in mods:

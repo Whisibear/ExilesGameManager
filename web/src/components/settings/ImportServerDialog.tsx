@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ActionButton } from "@/components/ui/egm-button";
 import { useNotifications } from "@/hooks/useNotifications";
+import type { GameDefinition } from "@/types/models";
+import { FALLBACK_GAME_CATALOG } from "@/lib/gameCatalogFallback";
 
 interface ImportServerDialogProps {
   open: boolean;
@@ -24,6 +26,8 @@ interface ImportServerDialogProps {
 export function ImportServerDialog({ open, onOpenChange, onImported }: ImportServerDialogProps) {
   const { t } = useTranslation();
   const [name, setName] = React.useState("");
+  const [games, setGames] = React.useState<GameDefinition[]>(FALLBACK_GAME_CATALOG.games);
+  const [gameId, setGameId] = React.useState("palworld");
   const [path, setPath] = React.useState("");
   const [detecting, setDetecting] = React.useState(false);
   const [importing, setImporting] = React.useState(false);
@@ -35,7 +39,18 @@ export function ImportServerDialog({ open, onOpenChange, onImported }: ImportSer
       setName("");
       setPath("");
       setError(null);
+      setGameId("palworld");
+      return;
     }
+    instancesApi.listGames()
+      .then((catalog) => {
+        setGames(catalog.games);
+        setGameId(catalog.defaultGameId);
+      })
+      .catch(() => {
+        setGames(FALLBACK_GAME_CATALOG.games);
+        setGameId(FALLBACK_GAME_CATALOG.defaultGameId);
+      });
   }, [open]);
 
   async function handleDetect() {
@@ -75,11 +90,20 @@ export function ImportServerDialog({ open, onOpenChange, onImported }: ImportSer
     setImporting(true);
     setError(null);
     try {
-      await instancesApi.importExisting(name.trim(), path.trim());
+      const result = await instancesApi.importExisting(name.trim(), path.trim(), gameId);
       notifications.success({
         title: t("settings.import.importedTitle", { defaultValue: "Server imported" }),
         message: name.trim(),
       });
+      for (const issue of result.importAnalysis?.issues ?? []) {
+        const payload = {
+          title: t(issue.titleKey, { defaultValue: issue.fallbackTitle }),
+          message: t(issue.messageKey, { defaultValue: issue.fallbackMessage }),
+        };
+        if (issue.severity === "error") notifications.error(payload);
+        else if (issue.severity === "warning") notifications.warning(payload);
+        else notifications.info(payload);
+      }
       onImported();
       onOpenChange(false);
     } catch (e) {
@@ -100,18 +124,29 @@ export function ImportServerDialog({ open, onOpenChange, onImported }: ImportSer
           <DialogTitle>{t("settings.import.title", { defaultValue: "Import an Existing Server" })}</DialogTitle>
           <DialogDescription>
             {t("settings.import.description", {
-              defaultValue: "Register a Palworld Dedicated Server you already have installed.",
+              defaultValue: "Register an existing dedicated server. EGM validates the selected game layout before importing it.",
             })}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="import-game">Game</Label>
+            <select id="import-game" value={gameId} onChange={(event) => setGameId(event.target.value)}
+              className="h-10 w-full rounded-md border border-stone-700 bg-abyss-950/60 px-3 text-sm text-parchment-100">
+              {games.map((game) => (
+                <option key={game.id} value={game.id} disabled={!game.deployable}>
+                  {game.label}{!game.deployable ? " — prepared, not yet importable" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
           <ActionButton
             type="button"
             variant="mana"
             icon={<Radar />}
             onClick={handleDetect}
-            disabled={detecting}
+            disabled={detecting || gameId !== "palworld"}
             className="w-full"
           >
             {detecting
@@ -131,7 +166,7 @@ export function ImportServerDialog({ open, onOpenChange, onImported }: ImportSer
               id="import-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder={t("settings.import.serverNamePlaceholder", { defaultValue: "My Palworld Server" })}
+              placeholder={t("settings.import.serverNamePlaceholder", { defaultValue: "My Game Server" })}
             />
           </div>
           <div className="space-y-1.5">
@@ -143,7 +178,7 @@ export function ImportServerDialog({ open, onOpenChange, onImported }: ImportSer
                 id="import-path"
                 value={path}
                 onChange={(e) => setPath(e.target.value)}
-                placeholder="D:\SteamLibrary\steamapps\common\PalServer"
+                placeholder={gameId.startsWith("conan_exiles") ? "C:\\ConanServer" : "D:\\SteamLibrary\\steamapps\\common\\PalServer"}
                 className="flex-1"
               />
               <ActionButton type="button" variant="ghost" size="sm" icon={<FolderOpen />} onClick={handleBrowse}>

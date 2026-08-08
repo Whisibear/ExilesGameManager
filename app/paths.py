@@ -1,7 +1,7 @@
 """Resolves where this app reads/writes data, aware of two very different
 run modes:
 
-- Dev (`python Palworld_Server.py` / uvicorn --reload): data lives in the
+- Dev (`python EGM_Server.py` / uvicorn --reload): data lives in the
   project's own `data/` folder, same as always.
 - Frozen (packaged via PyInstaller into a onefile .exe): the executable
   unpacks itself into a fresh temp folder every launch, so anything written

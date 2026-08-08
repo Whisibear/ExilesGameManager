@@ -3,8 +3,8 @@ import type { SteamWorkshopResult } from "@/types/models";
 import { ActionButton } from "@/components/ui/egm-button";
 import { useTranslation } from "react-i18next";
 
-interface Props { mod: SteamWorkshopResult; wishlisted: boolean; busy: boolean; onWishlist: () => void; }
-export function SteamWorkshopCard({ mod, wishlisted, busy, onWishlist }: Props) {
+interface Props { mod: SteamWorkshopResult; wishlisted?: boolean; busy: boolean; onWishlist?: () => void; onInstall?: () => void; installMode?: boolean; }
+export function SteamWorkshopCard({ mod, wishlisted = false, busy, onWishlist, onInstall, installMode = false }: Props) {
   const { t } = useTranslation();
   return <div className="rounded-xl border border-stone-700/70 bg-abyss-900/55 p-4">
     <div className="flex gap-3">
@@ -16,7 +16,11 @@ export function SteamWorkshopCard({ mod, wishlisted, busy, onWishlist }: Props) 
     <div className="mt-3 flex gap-4 text-xs text-parchment-300/45"><span className="flex items-center gap-1"><Download className="h-3 w-3" />{mod.subscriptions.toLocaleString()}</span><span className="flex items-center gap-1"><Heart className="h-3 w-3" />{mod.favorites.toLocaleString()}</span></div>
     <div className="mt-4 grid grid-cols-2 gap-2">
       <ActionButton variant="ghost" size="sm" icon={<ExternalLink />} onClick={() => window.open(mod.steamUrl, "_blank")}>{t("mods.steamBrowser.view", { defaultValue: "View on Steam" })}</ActionButton>
-      <ActionButton variant="gold" size="sm" icon={<Heart />} disabled={wishlisted || busy} onClick={onWishlist}>{wishlisted ? t("mods.steamBrowser.added", { defaultValue: "Wishlisted" }) : t("mods.steamBrowser.add", { defaultValue: "Add to Wishlist" })}</ActionButton>
+      {installMode ? (
+        <ActionButton variant="mana" size="sm" icon={<Download />} disabled={busy} onClick={onInstall}>{busy ? "Installing..." : "Install"}</ActionButton>
+      ) : (
+        <ActionButton variant="gold" size="sm" icon={<Heart />} disabled={wishlisted || busy} onClick={onWishlist}>{wishlisted ? t("mods.steamBrowser.added", { defaultValue: "Wishlisted" }) : t("mods.steamBrowser.add", { defaultValue: "Add to Wishlist" })}</ActionButton>
+      )}
     </div>
   </div>;
 }

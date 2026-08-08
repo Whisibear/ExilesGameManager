@@ -102,7 +102,7 @@ export default function ServerSelection() {
                       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-mana-500/25 bg-mana-500/[0.07] text-mana-300"><Server className="h-5 w-5" /></div>
                       <div className="min-w-0">
                         <h2 className="truncate font-display text-lg font-semibold text-parchment-100">{item.name}</h2>
-                        <p className="mt-1 truncate text-xs text-parchment-300/45">Palworld Dedicated Server · UDP {item.gamePort}</p>
+                        <p className="mt-1 truncate text-xs text-parchment-300/45">{item.gameLabel} Dedicated Server · UDP {item.gamePort}</p>
                       </div>
                     </div>
                     <span className={cn("inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide", isOnline ? "border-life-500/30 bg-life-500/[0.07] text-life-300" : "border-stone-600/70 bg-white/[0.025] text-parchment-300/55")}>

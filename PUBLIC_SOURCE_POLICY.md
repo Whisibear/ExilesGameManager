@@ -86,3 +86,7 @@ The following files remain internal and are not published:
 - local signing configuration
 
 `NEXUS_DESCRIPTION.md` remains internal until a Nexus publication is intentionally prepared. Historical migration notes are also excluded unless they are required for current users or reproducible builds.
+
+## Packaged Windows lifecycle
+
+The public source includes the Windows system-tray implementation, its `pystray`/Pillow dependencies, PyInstaller configuration, installer graceful-shutdown integration and reproducible release validation. Private release-operator and GitHub-mirror automation remains excluded as documented above.

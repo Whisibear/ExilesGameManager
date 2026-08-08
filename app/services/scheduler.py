@@ -14,7 +14,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any
 
-from app.services import activity_log, automation_store, instance_store, palworld_rest, process_manager, task_queue
+from app.services import activity_log, automation_store, conan_process_manager, instance_store, palworld_rest, process_manager, task_queue
 from app.services.palworld_rest import PalworldRestError
 from app.services.process_manager import ProcessError
 
@@ -204,7 +204,54 @@ async def _check_server_health(instance: dict[str, Any]) -> None:
             activity_log.log("warning", name, "Palworld REST API became unreachable while the server process is running.")
 
 
+async def _check_conan_server_health(instance: dict[str, Any]) -> None:
+    instance_id = instance["id"]
+    name = instance["name"]
+    status = await asyncio.to_thread(conan_process_manager.get_status, instance)
+    state = status["state"]
+    previous = _last_process_state.get(instance_id)
+    _last_process_state[instance_id] = state
+
+    if previous is None:
+        if state in ("starting", "online"):
+            activity_log.log(
+                "info",
+                name,
+                "Running Conan Exiles process detected by the activity monitor.",
+                instance_id=instance_id,
+            )
+        return
+
+    if previous == state:
+        return
+    if state == "online":
+        activity_log.log(
+            "info",
+            name,
+            "Conan Exiles server process is online.",
+            instance_id=instance_id,
+        )
+    elif state == "starting" and previous == "offline":
+        activity_log.log(
+            "info",
+            name,
+            "Conan Exiles server process startup detected.",
+            instance_id=instance_id,
+        )
+    elif state == "offline" and previous in ("starting", "online"):
+        if not conan_process_manager.was_intentionally_stopped_recently(instance_id):
+            activity_log.log(
+                "error",
+                name,
+                "Conan Exiles server process stopped unexpectedly. Possible crash or external termination.",
+                instance_id=instance_id,
+            )
+
+
 async def _check_instance(instance: dict[str, Any]) -> None:
+    if str(instance.get("gameId") or "palworld").startswith("conan_exiles_"):
+        await _check_conan_server_health(instance)
+        return
     await _check_server_health(instance)
     config = automation_store.load(instance["id"])
     await _check_backup(instance, config)

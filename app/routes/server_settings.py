@@ -1,21 +1,18 @@
-from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.auth_deps import get_current_user
-from app.services import instance_store, palworld_settings
+from app.games.providers import (
+    ProviderUnavailableError,
+    get_provider_for_instance,
+)
+from app.games.providers.base import ServerSettingsProvider
+from app.services import activity_log, instance_store
 
 router = APIRouter()
 
-# AdminPassword/ServerPassword are real credentials (AdminPassword is used by
-# Palworld's local REST API - equivalent to direct, tool-bypassing control of
-# the game server), not day-to-day settings like difficulty or EXP rate. Only the
-# super admin can see their real value or change them - a friend-admin whose
-# access is later revoked shouldn't have been able to read this out of the
-# Network tab and keep using it directly.
-_CREDENTIAL_FIELDS = {"AdminPassword", "ServerPassword"}
 _REDACTED = "••••••••"
 
 
@@ -26,25 +23,56 @@ def _require_active_instance() -> dict[str, Any]:
     return instance
 
 
-def _redact_credentials(fields: list[dict[str, Any]], user: dict[str, Any]) -> list[dict[str, Any]]:
+def _settings_provider(
+    instance: dict[str, Any],
+) -> ServerSettingsProvider:
+    try:
+        return get_provider_for_instance(instance).settings
+    except ProviderUnavailableError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+def _redact_credentials(
+    fields: list[dict[str, Any]],
+    user: dict[str, Any],
+    provider: ServerSettingsProvider,
+) -> list[dict[str, Any]]:
     if user["role"] == "super_admin":
         return fields
     return [
-        {**f, "value": _REDACTED} if f["key"] in _CREDENTIAL_FIELDS else f
-        for f in fields
-        if f["key"] not in palworld_settings.LOCAL_API_SETTING_KEYS
+        {**field, "value": _REDACTED}
+        if field["key"] in provider.credential_fields or bool(field.get("sensitive"))
+        else field
+        for field in fields
+        if field["key"] not in provider.restricted_fields
     ]
 
 
-def _settings_view(instance: dict[str, Any], user: dict[str, Any]) -> dict[str, Any]:
-    fields = palworld_settings.read_all_settings(Path(instance["serverPath"]))
-    return {"fields": _redact_credentials(fields, user)}
+def _settings_view(
+    instance: dict[str, Any],
+    user: dict[str, Any],
+    provider: ServerSettingsProvider | None = None,
+) -> dict[str, Any]:
+    resolved = provider or _settings_provider(instance)
+    fields = resolved.read_fields(instance)
+    game = instance_store.get_game_definition(instance)
+    return {
+        "fields": _redact_credentials(fields, user, resolved),
+        "gameId": game.id,
+        "gameFamily": game.family,
+        "gameEdition": game.edition,
+        "gameLabel": game.label,
+        "providerId": resolved.game_id,
+        "restartRequired": False,
+        "changedKeys": [],
+    }
 
 
 @router.get("")
 async def get_settings(user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
     instance = _require_active_instance()
-    return _settings_view(instance, user)
+    provider = _settings_provider(instance)
+    return _settings_view(instance, user, provider)
 
 
 class UpdateSettingsRequest(BaseModel):
@@ -56,20 +84,58 @@ async def update_settings(
     body: UpdateSettingsRequest, user: dict[str, Any] = Depends(get_current_user)
 ) -> dict[str, Any]:
     instance = _require_active_instance()
-    if user["role"] != "super_admin" and _CREDENTIAL_FIELDS & body.values.keys():
-        raise HTTPException(status_code=403, detail="Only the super admin can change the REST API/server password.")
-    if user["role"] != "super_admin" and palworld_settings.LOCAL_API_SETTING_KEYS & body.values.keys():
-        raise HTTPException(status_code=403, detail="Only the super admin can change Local API settings.")
+    provider = _settings_provider(instance)
+    value_keys = body.values.keys()
+    current_fields = {field["key"]: field for field in provider.read_fields(instance)}
+    sensitive_keys = provider.credential_fields | frozenset(
+        key for key, field in current_fields.items() if field.get("sensitive")
+    )
+    if (
+        user["role"] != "super_admin"
+        and sensitive_keys & value_keys
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="Only the super admin can change server credentials.",
+        )
+    if (
+        user["role"] != "super_admin"
+        and provider.restricted_fields & value_keys
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="Only the super admin can change local management settings.",
+        )
+    before_fields = {field["key"]: field for field in provider.read_fields(instance)}
     try:
-        palworld_settings.write_settings(Path(instance["serverPath"]), body.values)
-    except (ValueError, OSError) as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        provider.write_fields(instance, body.values)
+        provider.synchronize_instance_metadata(instance, body.values)
+    except (ValueError, OSError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    # PublicPort is edited here, in the live ini, not in instances.json - keep
-    # the stored gamePort from going stale too (display elsewhere, and the
-    # fallback used if this ini ever loses its PublicPort field).
-    if "PublicPort" in body.values:
-        instance_store.update_game_port(instance["id"], int(body.values["PublicPort"]))
-
+    after_fields = {field["key"]: field for field in provider.read_fields(instance)}
+    changed_keys = [
+        key for key in body.values
+        if key in after_fields and before_fields.get(key, {}).get("value") != after_fields[key].get("value")
+    ]
     updated_instance = instance_store.get(instance["id"]) or instance
-    return _settings_view(updated_instance, user)
+    response = _settings_view(updated_instance, user, provider)
+    game = instance_store.get_game_definition(updated_instance)
+    if game.family == "conan_exiles" and changed_keys:
+        sensitive = {key for key, field in after_fields.items() if field.get("sensitive")}
+        public_keys = [key for key in changed_keys if key not in sensitive]
+        sensitive_count = len(changed_keys) - len(public_keys)
+        parts = []
+        if public_keys:
+            parts.append(", ".join(public_keys))
+        if sensitive_count:
+            parts.append(f"{sensitive_count} sensitive setting(s)")
+        activity_log.log(
+            "info",
+            updated_instance.get("name") or game.label,
+            "Conan server settings saved: " + "; ".join(parts) + ". Restart required to apply changes.",
+            instance_id=updated_instance["id"],
+        )
+        response["restartRequired"] = True
+        response["changedKeys"] = changed_keys
+    return response

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useTranslation } from "react-i18next";
-import { Info, Save, Sliders, Sparkles } from "lucide-react";
+import { AlertTriangle, FileCog, Info, Save, Sliders, Sparkles } from "lucide-react";
 import { serverSettingsApi } from "@/api";
 import type { SettingField } from "@/types/models";
 import { Panel } from "@/components/ui/panel";
@@ -17,10 +17,20 @@ type FieldValue = boolean | number | string;
 type Translate = ReturnType<typeof useTranslation>["t"];
 
 const GROUP_ORDER = [
-  "Identity and Access",
-  "World Rules",
+  "Server & Network",
+  "Security",
   "Combat",
   "Progression",
+  "Harvesting & Crafting",
+  "Thralls",
+  "Survival",
+  "Day & Night",
+  "World",
+  "RCON",
+  "Gameplay",
+  "Additional ServerSettings",
+  "Identity and Access",
+  "World Rules",
   "Time and Survival",
   "World Density",
   "Bases and Work",
@@ -82,7 +92,7 @@ function settingHelp(t: Translate, field: SettingField) {
         "Advanced raw Palworld value. Keep the existing format unless you know the exact value Palworld expects.",
     });
   return t("worldSettings.chrome.helpString", {
-    defaultValue: "Text setting written directly to PalWorldSettings.ini.",
+    defaultValue: "Text setting written directly to the selected server's configuration file.",
   });
 }
 
@@ -257,7 +267,9 @@ function FieldControl({
           id={`field-${field.key}`}
           type={inputType}
           inputMode={field.type === "float" ? "decimal" : undefined}
-          step={field.type === "float" ? "0.01" : undefined}
+          step={field.type === "float" ? field.step ?? "0.01" : undefined}
+          min={field.minimum ?? undefined}
+          max={field.maximum ?? undefined}
           value={value as string | number}
           onChange={handleChange}
         />
@@ -274,12 +286,18 @@ export default function WorldSettings() {
   const [dirty, setDirty] = React.useState<Set<string>>(new Set());
   const [saving, setSaving] = React.useState(false);
   const [showAdvanced, setShowAdvanced] = React.useState(false);
+  const [gameFamily, setGameFamily] = React.useState("");
+  const [gameLabel, setGameLabel] = React.useState("");
+  const [restartRequired, setRestartRequired] = React.useState(false);
   const notifications = useNotifications();
 
   const load = React.useCallback(() => {
     serverSettingsApi.getSettings().then((data) => {
       setFields(data.fields);
       setValues(Object.fromEntries(data.fields.map((f) => [f.key, f.value])));
+      setGameFamily(data.gameFamily);
+      setGameLabel(data.gameLabel);
+      setRestartRequired(false);
       setDirty(new Set());
     });
   }, []);
@@ -301,12 +319,13 @@ export default function WorldSettings() {
       const data = await serverSettingsApi.updateSettings(updates);
       setFields(data.fields);
       setValues(Object.fromEntries(data.fields.map((f) => [f.key, f.value])));
+      setRestartRequired(data.restartRequired);
       setDirty(new Set());
       notifications.success({
         title: t("worldSettings.chrome.settingsSavedTitle", { defaultValue: "Settings saved" }),
-        message: t("worldSettings.chrome.settingsSavedMessage", {
-          defaultValue: "Changes take effect the next time the server starts.",
-        }),
+        message: data.restartRequired
+          ? t("worldSettings.chrome.settingsSavedRestart", { defaultValue: "Settings were written successfully. Restart the server to apply the changes." })
+          : t("worldSettings.chrome.settingsSavedMessage", { defaultValue: "Settings were written successfully." }),
       });
     } catch (e) {
       notifications.error({
@@ -333,8 +352,33 @@ export default function WorldSettings() {
   const popular = visibleFields.filter((f) => f.popular);
   const advanced = visibleFields.filter((f) => !f.popular);
 
+  const isConan = gameFamily === "conan_exiles";
+
   return (
     <div className="space-y-6 pb-24">
+      {isConan && (
+        <Panel icon={<FileCog />} title={`${gameLabel || "Conan Exiles"} Server Settings`}>
+          <div className="space-y-3 text-sm text-parchment-300/60">
+            <p>
+              EGM reads and writes the selected server's real <span className="font-mono text-mana-300">ConanSandbox\Saved\Config\WindowsServer\ServerSettings.ini</span>.
+              Existing additional keys are discovered automatically and preserved. Network and RCON values shown here are read from Conan's Engine.ini/Game.ini companions.
+            </p>
+            <div className="rounded-lg border border-mana-500/20 bg-mana-500/[0.05] px-3 py-2 text-xs text-parchment-300/55">
+              Changes are validated before writing and are applied on the next Conan server start. Sensitive passwords are never written to the Activity Center.
+            </div>
+          </div>
+        </Panel>
+      )}
+
+      {restartRequired && (
+        <div className="flex items-start gap-3 rounded-lg border border-gold-500/35 bg-gold-500/[0.07] px-4 py-3 text-sm text-gold-200">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div>
+            <p className="font-semibold">Restart required</p>
+            <p className="mt-1 text-xs text-parchment-300/60">The Conan configuration was saved successfully. Restart this server to apply the changed settings.</p>
+          </div>
+        </div>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-stone-700 bg-abyss-900/60 px-5 py-3.5">
         <p className="text-xs text-parchment-300/50">
           {dirty.size > 0

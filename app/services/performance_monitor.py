@@ -7,7 +7,7 @@ from typing import Any
 
 import psutil
 
-from app.services import instance_store, process_manager
+from app.services import conan_process_manager, instance_store, process_manager
 
 _lock = threading.Lock()
 _last_net: tuple[float, int, int] | None = None
@@ -59,7 +59,12 @@ def active_snapshot() -> dict[str, Any]:
     if not instance:
         raise ValueError("No server selected.")
     vm = psutil.virtual_memory()
-    status = process_manager.get_status(instance["id"])
+    game = instance_store.get_game_definition(instance)
+    status = (
+        conan_process_manager.get_status(instance)
+        if game.family == "conan_exiles"
+        else process_manager.get_status(instance["id"])
+    )
     return {
         "instanceId": instance["id"],
         "instanceName": instance["name"],
@@ -83,7 +88,12 @@ def active_snapshot() -> dict[str, Any]:
 def all_instances_snapshot() -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for instance in instance_store.list_instances():
-        status = process_manager.get_status(instance["id"])
+        game = instance_store.get_game_definition(instance)
+        status = (
+            conan_process_manager.get_status(instance)
+            if game.family == "conan_exiles"
+            else process_manager.get_status(instance["id"])
+        )
         rows.append({
             "instanceId": instance["id"],
             "instanceName": instance["name"],

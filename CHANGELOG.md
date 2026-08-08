@@ -1,8 +1,227 @@
+## 0.8.1 Public Beta 8 — Installer / Release Hardening Fix
+
+- Fixed the E.11 One-Click Release contract validation so the valid graceful installer shutdown and external-server data-protection contract is detected reliably.
+- Synchronized application, installer, UpdateWorker, manifest, frontend and Windows metadata to `0.8.1-beta.8` / `0.8.1.8`.
+- Explicitly acknowledged intentional per-user LocalAppData use in the elevated Inno Setup installer to remove the compiler user-area warning.
+- Removed the unused Inno Setup `ResultCode` variable that produced a compiler hint.
+- Added `tzdata` as an explicit runtime dependency so PyInstaller can package timezone data without the previous hidden-import warning.
+- Retained the E.11 system-tray, graceful shutdown, update/repair/uninstall and external Palworld/Conan server-data protection behavior.
+
+## Phase E.11 — Installer, Release and System Tray Hardening
+
+- Added a Windows system-tray lifecycle for the packaged EGM application with Open, Dashboard and Quit/Beenden actions.
+- Quit performs a graceful Uvicorn shutdown and intentionally leaves managed Palworld and Conan dedicated-server processes running.
+- Added a named per-session quit event so Update, Repair and Uninstall can request a clean application shutdown before falling back to EGM-only process termination.
+- Hardened installer uninstall messaging so external Palworld/Conan server folders are explicitly preserved.
+- Added `pystray` and Pillow to the packaged runtime and PyInstaller configuration for the Windows tray icon.
+- Hardened packaged smoke tests so release validation does not open a browser or tray icon.
+- Extended One-Click Release, public-source export and Publish-to-GitHub validation with E.11 tray/installer checks and current Conan RCON/import source requirements.
+- Updated release, build, public-source and third-party documentation for the E.11 packaging lifecycle.
+## Phase E.10 — Conan Integration Completion
+
+- Added Conan existing-server import analysis for missing configuration and save-game data with translated warnings, including detection of existing Game/Query/RCON ports from the imported INI files.
+- Standardized all existing EGM toast notifications to a 10-second display duration.
+- Made Performance Monitor use the Conan process manager for Conan instances while preserving Palworld behavior.
+- Added E.10 regression coverage and documentation.
+
+## Phase E.9.4.2 — Generic mcrcon-compatible RCON transport
+
+- Replaced Conan-specific packet parsing with a reusable in-tree Source/Minecraft RCON transport for future Conan/ARK adapters.
+- Matched mcrcon wire behavior by using a stable request ID for authentication and commands and treating any non--1 authentication response ID as successful.
+- Kept RCON credentials backend-only and loopback-only for Conan.
+- Kept Live Console free of background RCON authentication polling.
+- Added explicit mcrcon protocol attribution without adding a GPL Python dependency or requiring an external executable.
+
+## Phase E.9.4.1 — Conan RCON connection-storm fix
+
+- Removed recurring authenticated RCON readiness polling from the Conan Live Console.
+- RCON status is now configuration-only and never opens a server TCP connection.
+- Authentication occurs only for explicit administrator commands or broadcasts.
+- Live Console reports configured RCON endpoint without producing connect/disconnect spam in ConanSandbox.log.
+- Preserved ShowPlayers, Broadcast, secret redaction, multi-packet response collection and Activity Center logging.
+
+## Phase E.9.4 — Conan RCON reliability
+
+- Hardened Conan RCON authentication and response collection for Minecraft/Source-compatible server behavior.
+- Removed the synthetic marker command that could make Conan commands time out after successful authentication.
+- Authenticated commands with intentionally empty responses are no longer reported as false timeouts.
+- Conan player-query helpers now use `ShowPlayers`; broadcasts use `Broadcast <message>`.
+- Added an authenticated RCON readiness indicator to the Conan Live Console in all shipped UI languages.
+- Added explicit Game.ini/EGM RCON-port mismatch validation and broadcast success/failure Activity Center logging.
+
+## Phase E.9.3 — Runtime window and Palworld dependency guidance
+
+- Fixed Palworld dedicated-server startup so the actual `PalServer-Win64-Shipping-Cmd.exe` worker runs without a visible console window.
+- Fixed Conan startup so the root `ConanSandboxServer.exe` no longer receives `-log`; the normal small Funcom shutdown window is retained instead of the scrolling log console.
+- Restored missing English `settings.deploy.*` translations in the New Server wizard.
+- Added translated Steam Workshop / UE4SS / PalSchema dependency guidance in every shipped UI language, clarifying that the current UE4SS Experimental (Palworld) and PalSchema dependencies are installed from Steam Workshop, while an older UE4SS installation must first be removed through the EGM panel.
+
+## Phase E.8.1 path cleanup
+
+- Conan Exiles Workshop content is resolved exclusively from each server instance at `<serverPath>/steamapps/workshop/content/440900/<WorkshopID>`.
+- Removed the Conan legacy/global EGM `data/steamcmd/steamapps/workshop` cache migration and fallback dependency.
+- `ConanSandbox/Mods/modlist.txt` keeps absolute `.pak` paths from the selected Conan server instance.
+- Development launcher validation fails if Conan Workshop code reintroduces a global EGM Workshop cache dependency.
+
+### Conan server-local Workshop library correction — Phase E.8.1
+
+- Conan Workshop downloads now use the selected server path as the SteamCMD library (`<ServerPath>/steamapps/workshop/content/440900/<WorkshopID>`), matching the per-server Palworld library model.
+- `ConanSandbox/Mods/modlist.txt` references absolute `.pak` paths from that server-local Workshop library.
+- Existing EGM-global Conan Workshop cache entries are migrated non-destructively into the selected server library when first used.
+- SteamCMD itself remains centrally managed by EGM; only Workshop content is instance-local.
+- Palworld behavior is unchanged.
+
 # Changelog
 
 All notable public changes to Exiles Game Manager are documented here. Internal release engineering notes remain in the private development tree.
 
-## 0.8.1 Public Beta 7 — Current stable beta
+## 0.8.1 Public Beta 8 — Current stable beta
+
+### Conan Workshop path/browser + backup correction — Phase E.8.1
+
+- Corrected Conan Workshop deployment to keep `.pak` files in `data/steamcmd/steamapps/workshop/content/440900/<WorkshopID>` and write their absolute paths into `ConanSandbox/Mods/modlist.txt` instead of duplicating `.pak` files into the server Mods directory.
+- Added automatic migration of Phase E.8 Conan mod records to the SteamCMD Workshop cache path when the cached item is present.
+- Changed Conan mod removal to remove the mod from EGM/load order while retaining the downloaded SteamCMD Workshop cache.
+- Made the Steam Workshop browser provider-aware: selecting Conan now browses/searches app `440900`, while Palworld keeps its existing Workshop catalog.
+- Added a Conan `Browse Workshop` flow with direct anonymous SteamCMD installation and a downloaded Conan Workshop cache panel.
+- Added game-aware Conan backups based on `ConanSandbox/Saved`, including world database and WindowsServer configuration, while explicitly excluding `DedicatedServerLauncher.ini`.
+- Updated the Phase E.8.1 development launcher preflight and retained the BAT-to-PS1 delegation.
+
+### Conan Steam Workshop + RCON hardening — Phase E.8
+
+- Added a dedicated Conan Exiles Steam Workshop mod manager for Enhanced and Legacy using Workshop app ID `440900`.
+- Conan Workshop installs now use anonymous SteamCMD, copy validated `.pak` files into `ConanSandbox/Mods`, and maintain `ConanSandbox/Mods/modlist.txt` in EGM load order.
+- Added Conan-specific install, update, update-all, enable, disable, remove and load-order operations with Task Queue and Activity Center visibility.
+- Added a separate Conan Mods page; Nexus Mods, UE4SS and Palworld-specific mod runtime verification are intentionally excluded from Conan.
+- Fixed Conan server start/restart so the Palworld-only `mods.verify_startup` task is never queued for Conan instances.
+- Hardened Conan RCON response handling for multi-packet responses and added sanitized command success/failure entries to the Activity Center without exposing credentials.
+- Added collision protection so a Conan Workshop install cannot overwrite an unrelated manually installed `.pak` file.
+- Updated both development launchers for the Phase E.8 catalog/capability preflight.
+
+### Conan end-to-end deployment enablement — Phase E.7
+
+- Enabled Conan Exiles Enhanced and Conan Exiles Legacy as deployable/runtime-ready providers.
+- Fixed provider-specific deployment port validation so Conan uses RCON and derives the Pinger port from Game Port + 1.
+- Mirrored dedicated-server deployments into the persistent Task Queue and added durable Activity Center lifecycle entries.
+- Generalized SteamCMD server updates through the selected game provider so Palworld and Conan keep isolated install metadata/branches.
+- Added Conan-specific scheduler health monitoring and prevented Palworld REST/backup/player automation from running against Conan instances.
+- Kept unsupported Conan Palworld-only workflows capability-gated; Steam Workshop, UE4SS, REST API and backups remain disabled for Conan in this phase.
+- Hid the unsupported manual world-save action for Conan while retaining RCON broadcast and Live Console support.
+- Updated the development launcher preflight so both `Start_Exiles_Game_Manager.ps1` and its BAT wrapper validate the Phase E.7 game catalog before testing.
+
+### Conan RCON + live console — Phase E.6
+
+- Added loopback-only Conan Source RCON infrastructure for Enhanced and Legacy.
+- Added authenticated RCON command execution and Conan broadcast support.
+- Added real-time `ConanSandbox.log` tailing with truncation/rotation recovery.
+- Added the capability-gated Live Console UI with RCON command input.
+- RCON credentials remain backend-only and are never returned to the browser.
+- Added complete Live Console translations for all currently shipped UI languages.
+- Conan remains route-gated and non-deployable until the complete workflow is ready.
+
+
+### Conan runtime/process control — Phase E.5
+
+- Added a dedicated Conan process manager for Enhanced and Legacy.
+- Added provider-aware executable discovery and safe instance-folder process detection.
+- Added Conan start, stop and restart infrastructure with process-tree cleanup.
+- Added process recovery after EGM/backend restarts plus CPU, RAM and uptime reporting.
+- Conan launch arguments now apply the selected game, query and RCON ports.
+- RCON-dependent save/broadcast functions remain intentionally deferred.
+- Conan remains route-gated and non-deployable until the end-to-end workflow is complete.
+
+
+### Conan config/settings infrastructure — Phase E.4
+
+- Added Conan-specific `Engine.ini`, `Game.ini` and `ServerSettings.ini` infrastructure.
+- Added typed server identity, game/query port, max-player, RCON and admin credential settings.
+- Added targeted INI updates that preserve unrelated configuration.
+- Implemented Conan config initialization for Enhanced and Legacy providers.
+- Added provider-specific port synchronization for future Conan settings edits.
+- Conan deployment remains disabled until runtime/process control is complete.
+
+
+### Multi-game SteamCMD provider infrastructure — Phase E.3
+
+- Moved dedicated-server Steam installation metadata into provider-owned definitions.
+- Palworld uses the generic provider SteamCMD path without changing deployment behavior.
+- Prepared Conan Exiles Enhanced for Steam app `443030` on the default/public branch.
+- Prepared Conan Exiles Legacy for Steam app `443030` on branch `conan-exiles-legacy`.
+- Added provider-specific instance port persistence for future Conan `game/pinger/query/rcon` data.
+- Conan deployment remains disabled until configuration generation and runtime control are complete.
+
+
+### Multi-game deployment provider infrastructure — Phase E.1
+
+- Added a game-neutral deployment provider contract for SteamCMD installation, clean cloning, initial configuration and instance port mapping.
+- Palworld deployment now routes through `PalworldDeploymentProvider` without changing its existing installation or settings behavior.
+- Conan Exiles Enhanced and Legacy now have prepared deployment providers while remaining intentionally non-deployable.
+- Added a generic SteamCMD application installer with optional Steam branch support and executable validation.
+- Corrected the Conan Legacy Steam branch identifier to `conan-exiles-legacy`.
+- `deploy_jobs.py` no longer selects Palworld SteamCMD/settings services directly.
+
+
+### Phase D.2 launcher authentication fix
+
+- Removed the pre-login request to the authenticated `/api/instances/games` route.
+- The development launcher now validates the Phase D.2 game catalog directly from local source files and the generated JavaScript bundle.
+- A failed remote catalog refresh no longer hides the local game selector or displays an authentication error inside the deployment wizard.
+- The normal login and session flow remains unchanged.
+
+
+### Phase D.2 TypeScript contract fix
+
+- Added the provider capability metadata already returned by the backend to the frontend `ServerStatus` type.
+- Fixed the frontend build failure in `gameCapabilities.ts`.
+
+
+### Deployment Wizard game selection — Phase D.2
+
+- Replaced the hidden/disabled game dropdown with visible provider cards for Palworld, Conan Exiles Enhanced and Conan Exiles Legacy.
+- Game selection now updates the description, server-name placeholder, clone sources and complete provider-defined port form.
+- Fixed relative ports such as Conan Pinger = Game + 1 are displayed read-only and update automatically.
+- Planned Conan editions can be inspected but still cannot be deployed until their runtime provider is complete.
+- Added complete translations for the multi-game deployment workflow in all supported UI languages.
+
+
+### Multi-game deployment engine — Phase D
+
+- Added visible game selection to deployment and import dialogs.
+- Added provider-defined TCP/UDP port roles, Steam branches and executable validation.
+- Added host-aware port suggestions and provider-based firewall profiles.
+- Clean clone choices are restricted to the same game and edition.
+- Conan Enhanced and Legacy are visible but remain safely disabled until runtime and RCON are complete.
+- Existing Palworld deployment remains compatible.
+
+
+### Multi-game capability UI — Phase C
+
+- Added a central frontend capability layer for game-specific navigation and controls.
+- Palworld retains the same Server Control buttons and sidebar destinations.
+- Game-specific pages are now hidden only when the selected provider explicitly does not support them.
+- Broadcast and shutdown countdown controls are available for providers with REST or RCON command support.
+- Mod update controls require Steam Workshop or Nexus capability.
+- Added a provider-controlled Live Console slot that remains invisible for Palworld.
+- Added an explicit Conan provider skeleton without registering or enabling unfinished Conan operations.
+
+
+### Multi-game provider routing — Phase B
+
+- Routed Server Control and Server Settings through the selected server's game provider.
+- Preserved all existing Palworld URLs, request payloads, response fields and behavior.
+- Added provider identity and game capabilities to status and settings responses.
+- Server credentials and restricted local-management fields are now declared by the active provider instead of hard-coded in the route.
+- Registered Conan servers cannot accidentally execute Palworld REST, Palworld settings or Palworld process actions; unavailable providers return a controlled conflict response.
+
+
+### Multi-game foundation — Phase A
+
+- Added `EGM_Server.py` as the canonical game-neutral backend entry point.
+- Retained `Palworld_Server.py` as a compatibility wrapper.
+- Added a game registry for Palworld, Conan Exiles Enhanced and Conan Exiles Legacy.
+- Existing instances without game metadata migrate automatically to Palworld.
+- Conan editions are metadata-only and cannot be deployed in this phase.
+
 
 ### Added
 
@@ -853,3 +1072,35 @@ All notable public changes to Exiles Game Manager are documented here. Internal 
 - Added dedicated Nexus Mods and Steam Workshop wishlist panels.
 - Restyled Steam Workshop Access as a full Super Admin panel matching Nexus Mods Integration.
 - Steam Workshop approval now installs only from a validated SteamCMD cache item and returns an actionable 409 response when the item has not been downloaded yet.
+
+### Phase E.8.1 Workshop Browser hardening
+- Hardened the Conan Exiles Steam Workshop browser against Steam's current browse-page variants: full desktop request headers, `actualsort`, multiple compatible request shapes, broader Workshop-ID extraction, and automatic retry when Steam returns a successful page without item cards.
+- The direct Conan Workshop dialog now explicitly requests the Conan catalog instead of relying only on the globally active-instance inference. Palworld keeps its separate Workshop catalog.
+- Added backend diagnostics for Workshop browse/search item-ID extraction and mapped-result counts, plus a visible empty-result state in the Conan browser.
+
+## Conan Phase E.9 - Server Settings
+
+- Added real Conan `ConanSandbox/Saved/Config/WindowsServer/ServerSettings.ini` loading and editing through the existing World Settings UI.
+- Added typed validation for core Conan combat, progression, harvesting, survival, day/night and server settings, including decimal comma normalization.
+- Existing unknown/mod- or version-specific keys already present in `[ServerSettings]` are discovered dynamically, remain editable, and are preserved instead of being deleted.
+- Writes are atomic and preserve unrelated INI sections/comments; unknown new keys cannot be injected through the API.
+- Sensitive password/token-style fields are protected and are never written with their values to Activity Center logs.
+- Saving Conan settings emits an instance-scoped Activity Center event and returns a visible restart-required state to the frontend.
+- Corrected All Servers overview metadata so Conan instances no longer appear as Palworld/Palpagos; Conan uses its actual game label and Exiled Lands fallback.
+- Palworld settings behavior remains unchanged.
+
+## Conan Phase E.9.1 - Settings Help, Hidden Server Processes & Palworld Respawn Safety
+
+- Conan setting info icons now show setting-specific help. Built-in fields use their curated descriptions; dynamically discovered `ServerSettings.ini` fields use Enhanced-aware help instead of the previous generic preservation message.
+- Expanded dynamic Conan help coverage for the real settings observed in the supplied Enhanced `ServerSettings.ini`, while retaining forward-compatible discovery for future/mod-specific keys.
+- Conan and Palworld dedicated-server processes now start without a visible console window on Windows while remaining independently manageable by EGM.
+- Palworld `BlockRespawnTime` and `RespawnPenaltyDurationThreshold` now expose minimum 1 in the UI, reject values below 1 when saved, and are repaired to 1 at server start if an older configuration still contains 0.
+- Added regression coverage for Conan help text, Palworld respawn validation/repair, and hidden Windows process flags.
+
+## Conan Phase E.9.2 - Dedicated Binary Launch & Decimal Input Fix
+
+- Palworld now prefers the non-console `Pal/Binaries/Win64/PalServer-Win64-Shipping.exe` worker and falls back to `PalServer.exe` only when required.
+- Conan now prefers the server-root `ConanSandboxServer.exe` launcher before the Win64 shipping fallback.
+- Both runtime managers use the shared Windows hidden-process startup configuration in addition to process-group handling.
+- Dynamically discovered Conan `*Multiplier` and `*Scale` settings are treated as decimal settings even when their current INI value is an integer such as `1`.
+- Dynamic Conan decimal values accept dot or comma input and are written to `ServerSettings.ini` with Conan-compatible dot notation.

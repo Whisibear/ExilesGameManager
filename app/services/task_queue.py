@@ -258,6 +258,15 @@ def create_external_task(action: str, *, title: str, message: str = "Running", p
     return task_id
 
 
+
+def bind_external_task_instance(task_id: str, instance_id: str) -> None:
+    task = _tasks.get(task_id)
+    if not task or task.get("status") in TERMINAL_STATES:
+        return
+    task["instanceId"] = instance_id
+    task["updatedAt"] = _now()
+    _persist()
+
 def update_external_task(task_id: str, *, message: str, progress: float | None = None, level: str = "info") -> None:
     task = _tasks.get(task_id)
     if not task or task.get("status") in TERMINAL_STATES:
@@ -528,10 +537,17 @@ async def _dispatch(ctx: TaskContext, action: str, instance_id: str | None, payl
         ctx.progress(95, "Firewall rules removed")
         return result
     if action == "mods.check_updates":
-        from app.services import nexus_mod_service, steam_workshop
+        from app.services import conan_workshop, instance_store, nexus_mod_service, steam_workshop
         instance = await _require_instance(instance_id)
+        game = instance_store.get_game_definition(instance)
+        if game.family == "conan_exiles":
+            ctx.progress(5, "Checking Conan Steam Workshop mods")
+            ctx.log("Conan Steam Workshop update check started.")
+            steam = await conan_workshop.check_updates(instance)
+            ctx.progress(100, "Conan mod update check complete")
+            return {**steam, "steam": steam, "nexus": None}
         ctx.progress(5, "Checking Steam Workshop mods")
-        ctx.log("Combined mod update check started for Steam Workshop and Nexus Mods.")
+        ctx.log("Combined Palworld mod update check started for Steam Workshop and Nexus Mods.")
         steam = await steam_workshop.check_updates(instance)
         ctx.progress(50, "Checking Nexus Mods")
         nexus = await nexus_mod_service.check_updates(instance)
@@ -545,21 +561,39 @@ async def _dispatch(ctx: TaskContext, action: str, instance_id: str | None, payl
         instance = await _require_instance(instance_id)
         return await mod_runtime_verifier.verify_after_start(ctx, instance)
     if action in {"workshop.install", "workshop.update"}:
-        from app.services import steam_workshop
+        from app.services import conan_workshop, instance_store, steam_workshop
         instance = await _require_instance(instance_id)
+        game = instance_store.get_game_definition(instance)
+        service = conan_workshop if game.family == "conan_exiles" else steam_workshop
         wid = str(payload["workshopId"])
         ctx.progress(5, "Downloading Workshop item")
-        ctx.log(f"Steam Workshop item {wid}: download and install started.")
-        result = await steam_workshop.install(instance, wid, force_download=action == "workshop.update")
+        ctx.log(f"{game.label} Steam Workshop item {wid}: download and install started.")
+        result = await service.install(instance, wid, force_download=action == "workshop.update")
         ctx.progress(95, "Workshop mod configured")
         return result
     if action == "workshop.update_all":
-        from app.services import steam_workshop
+        from app.services import conan_workshop, instance_store, steam_workshop
         instance = await _require_instance(instance_id)
-        ctx.progress(5, "Creating compact safety backup")
-        result = await steam_workshop.update_all(instance)
+        game = instance_store.get_game_definition(instance)
+        service = conan_workshop if game.family == "conan_exiles" else steam_workshop
+        ctx.progress(5, "Preparing Workshop updates")
+        result = await service.update_all(instance)
         ctx.progress(95, "Workshop mods updated")
         return result
+    if action in {"conan_workshop.enable", "conan_workshop.disable", "conan_workshop.remove", "conan_workshop.reorder"}:
+        from app.services import conan_workshop
+        instance = await _require_instance(instance_id)
+        if action == "conan_workshop.enable":
+            ctx.progress(20, "Enabling Conan Workshop mod")
+            return conan_workshop.set_enabled(instance, str(payload["modId"]), True)
+        if action == "conan_workshop.disable":
+            ctx.progress(20, "Disabling Conan Workshop mod")
+            return conan_workshop.set_enabled(instance, str(payload["modId"]), False)
+        if action == "conan_workshop.remove":
+            ctx.progress(20, "Removing Conan Workshop mod")
+            return conan_workshop.remove(instance, str(payload["modId"]))
+        ctx.progress(20, "Updating Conan Workshop load order")
+        return conan_workshop.reorder(instance, [str(value) for value in payload.get("orderedIds", [])])
     if action == "server.update":
         from app.services import server_update
         instance = await _require_instance(instance_id)

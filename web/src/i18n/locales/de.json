@@ -548,11 +548,11 @@
       },
       "BlockRespawnTime": {
         "label": "Respawn-Cooldown (Sekunden)",
-        "help": "Grundlegender Respawn-Cooldown in Sekunden nach dem Tod."
+        "help": "Grundlegender Respawn-Cooldown in Sekunden nach dem Tod. EGM erzwingt mindestens 1 Sekunde, da 0 zu fehlerhaftem Respawn-Verhalten im Spiel führen kann."
       },
       "RespawnPenaltyDurationThreshold": {
         "label": "Schnelltod-Schwelle (Sekunden)",
-        "help": "Überlebenszeit in Sekunden, unterhalb derer ein kurzes jüngstes Leben zur wiederholten Todes-Respawn-Strafe zählt."
+        "help": "Überlebenszeit in Sekunden, unterhalb derer ein kurzes jüngstes Leben zur wiederholten Todes-Respawn-Strafe zählt. EGM erzwingt mindestens 1 Sekunde, da 0 zu fehlerhaftem Respawn-Verhalten im Spiel führen kann."
       },
       "RespawnPenaltyTimeScale": {
         "label": "Respawn-Strafmultiplikator",
@@ -824,7 +824,9 @@
         "title": "UE4SS deinstallieren?",
         "description": "Dies entfernt den UE4SS-Loader und seine integrierten Mods. Selbst installierte Mods (z. B. von Nexus) bleiben erhalten, laden aber ohne UE4SS nicht mehr.",
         "confirm": "Deinstallieren"
-      }
+      },
+      "workshopDependencyNotice": "Steam-Workshop-Mods installieren Laufzeit-Abhängigkeiten nicht automatisch. Wenn ein Workshop-Mod UE4SS benötigt, installiere die aktuelle Version UE4SS Experimental (Palworld) aus dem Steam Workshop. Wenn er PalSchema benötigt, installiere zusätzlich PalSchema aus dem Steam Workshop.",
+      "legacyCleanupNotice": "Bevor du die aktuelle Version UE4SS Experimental (Palworld) aus dem Steam Workshop installierst, deinstalliere zuerst jede alte UE4SS-Installation über diesen Bereich. Zurückgebliebene ältere UE4SS-Dateien können dazu führen, dass PalSchema und davon abhängige Mods nicht funktionieren."
     },
     "nexusBrowse": {
       "title": "Nexus Mods durchsuchen",
@@ -926,7 +928,8 @@
     "steamWishlist": {
       "title": "Steam Workshop Wishlist",
       "description": "Steam Workshop requests are managed separately from Nexus Mods. The super admin downloads approved items through SteamCMD and installs them for the selected server.",
-      "empty": "No Steam Workshop mods are waiting for approval."
+      "empty": "No Steam Workshop mods are waiting for approval.",
+      "runtimeDependencyNotice": "Bei der Workshop-Installation wird nur das ausgewählte Workshop-Element installiert. Mods, die UE4SS benötigen, benötigen die aktuelle Version UE4SS Experimental (Palworld) aus dem Steam Workshop. Mods, die PalSchema benötigen, benötigen zusätzlich PalSchema aus dem Steam Workshop."
     },
     "nexusDownloaded": {
       "title": "Heruntergeladene Nexus Mods",
@@ -1058,6 +1061,20 @@
       "countdownStartedMessage": "Der Server wird in {{seconds}}s verstummen.",
       "countdownCancelledTitle": "Countdown abgebrochen",
       "countdownCancelledMessage": "Das Schicksal des Reiches wurde vorerst abgewendet."
+    },
+    "liveConsole": {
+      "title": "Live-Konsole",
+      "connected": "ConanSandbox.log wird in Echtzeit verfolgt.",
+      "waiting": "Warte auf ConanSandbox.log...",
+      "empty": "Noch keine Serverausgabe.",
+      "commandPlaceholder": "RCON-Befehl, z. B. ShowPlayers...",
+      "sending": "Wird gesendet...",
+      "send": "Senden",
+      "clear": "Leeren",
+      "security": "RCON verbindet sich ausschließlich mit 127.0.0.1. Das RCON-Passwort gelangt niemals in den Browser.",
+      "rconConnected": "RCON verbunden",
+      "rconConfigured": "RCON konfiguriert",
+      "rconUnavailable": "RCON nicht verfügbar"
     }
   },
   "launcherOptions": {
@@ -1250,7 +1267,7 @@
       "startFailedFallback": "Die Bereitstellung konnte nicht gestartet werden.",
       "folderPickerFailedFallback": "Der Ordnerauswahldialog konnte nicht geöffnet werden.",
       "title": "Einen neuen Server bereitstellen",
-      "description": "Installiert einen frischen, vollständig isolierten Palworld Dedicated Server über SteamCMD - mit eigenem Ordner, Mods und Ports, sodass er mit keinem anderen von diesem Tool verwalteten Server in Konflikt geraten kann.",
+      "description": "Erstellt einen vollständig isolierten Dedicated Server über den ausgewählten Spiel-Provider.",
       "serverName": "Servername",
       "serverNamePlaceholder": "Mein gemütliches Palworld",
       "gamePort": "Spielport",
@@ -1266,7 +1283,26 @@
       "cancel": "Abbrechen",
       "deploy": "Bereitstellen",
       "close": "Schließen",
-      "queryPort": "Steam-Abfrageport"
+      "queryPort": "Steam-Abfrageport",
+      "gameSelection": "Spiel",
+      "availableNow": "Jetzt verfügbar",
+      "preparedNotInstallable": "Vorbereitet — Installation folgt",
+      "providerPending": "Diese Edition ist bereits mit Steam-Branch, ausführbaren Dateien, Portrollen und Fähigkeiten modelliert. Die Bereitstellung bleibt deaktiviert, bis Conan-Runtime, Konfiguration und RCON-Provider vollständig sind.",
+      "creationMethod": "Erstellungsmethode",
+      "freshSteamCmd": "Frischer Download über SteamCMD",
+      "cleanCopyOf": "Saubere lokale Kopie von: {{name}}",
+      "cloneHint": "Eine lokale Kopie übernimmt die Serverdateien und schließt Saves, Mods, Protokolle und Laufzeitdaten aus. Der Quellserver muss gestoppt sein und dieselbe Spiel-Edition verwenden.",
+      "descriptionGeneric": "Erstellt einen vollständig isolierten Dedicated Server über den ausgewählten Spiel-Provider.",
+      "descriptionPalworld": "Installiert einen frischen, vollständig isolierten Palworld Dedicated Server über SteamCMD mit eigenem Ordner, Mods und Ports.",
+      "descriptionConanEnhanced": "Bereitet einen Conan Exiles Enhanced Dedicated Server über den aktuellen Steam-Branch und providerspezifische Ports vor.",
+      "descriptionConanLegacy": "Bereitet einen Conan Exiles Legacy Dedicated Server über den Steam-Branch Conan-Exiles-Legacy vor.",
+      "placeholderGeneric": "Mein Gameserver",
+      "placeholderPalworld": "Mein Palworld Server",
+      "placeholderConanEnhanced": "Mein Conan Enhanced Server",
+      "placeholderConanLegacy": "Mein Conan Legacy Server",
+      "hintMultiGame": "EGM prüft providerspezifische TCP-/UDP-Ports gegen registrierte Instanzen und aktive Host-Sockets und erstellt anschließend das passende Windows-Firewall-Profil.",
+      "defaultLocationValue": "Standard: {{path}}",
+      "waitGameCaption": "Nutze ← → und Leertaste, während dein Server heruntergeladen wird..."
     },
     "import": {
       "importedTitle": "Server importiert",
@@ -1274,17 +1310,24 @@
       "detectFailedFallback": "In keiner Steam-Bibliothek wurde ein Palworld-Server gefunden.",
       "importFailedFallback": "Dieser Ordner konnte nicht importiert werden.",
       "title": "Einen vorhandenen Server importieren",
-      "description": "Registriere einen bereits installierten Palworld Dedicated Server.",
+      "description": "Registriere einen vorhandenen Dedicated Server. EGM prüft vor dem Import die Ordnerstruktur des ausgewählten Spiels.",
       "scanning": "Steam-Bibliotheken werden gescannt...",
       "autoDetect": "Automatisch über Steam erkennen",
       "orManually": "oder manuell eingeben",
       "serverName": "Servername",
-      "serverNamePlaceholder": "Mein Palworld-Server",
+      "serverNamePlaceholder": "Mein Gameserver",
       "installFolder": "Installationsordner",
       "browse": "Durchsuchen",
       "cancel": "Abbrechen",
       "importing": "Wird importiert...",
-      "import": "Importieren"
+      "import": "Importieren",
+      "notDetected": "Keine vorhandene Serverinstallation erkannt. Wähle den Serverordner manuell aus.",
+      "analysis": {
+        "configUnavailableTitle": "Server-Konfiguration nicht verfügbar",
+        "configUnavailableMessage": "Unter ConanSandbox\\Saved\\Config\\WindowsServer wurde keine Conan-Serverkonfiguration gefunden. EGM hat den Server importiert, die Einstellungen können aber erst gelesen werden, wenn Conan diese Dateien erstellt oder sie aus einem Backup wiederhergestellt wurden.",
+        "saveUnavailableTitle": "Server-Spielstand nicht verfügbar",
+        "saveUnavailableMessage": "Unter ConanSandbox\\Saved wurde keine Conan-Spieldatenbank gefunden. Bei einer frischen Installation kann das normal sein; starte den Server einmal oder stelle ein Backup wieder her, bevor bestehende Weltdaten erwartet werden."
+      }
     }
   },
   "localApi": {

@@ -16,6 +16,9 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
+from app.games import get_game_or_default
+from app.games.providers import get_provider_for_game
+from app.services import port_allocator
 from app.services.windows_subprocess import hidden_process_kwargs
 
 logger = logging.getLogger("egm.firewall")
@@ -113,14 +116,23 @@ def add_inbound_rule(rule_name: str, port: int, protocol: str = "TCP") -> None:
 def instance_rules(instance: dict, *, include_rest: bool = True) -> list[FirewallRule]:
     safe_name = str(instance.get("name") or instance.get("id") or "Server").replace('"', "'")
     prefix = f"ExilesGameManager - {safe_name}"
-    game_port = int(instance.get("gamePort") or 8211)
-    rules = [FirewallRule(f"{prefix} - Game UDP {game_port}", game_port, "UDP")]
-    if bool(instance.get("useQueryPort")) and instance.get("queryPort"):
-        query = int(instance["queryPort"])
-        rules.append(FirewallRule(f"{prefix} - Query UDP {query}", query, "UDP"))
-    if include_rest and instance.get("rconPort"):
-        rest = int(instance["rconPort"])
-        rules.append(FirewallRule(f"{prefix} - REST API TCP {rest}", rest, "TCP"))
+    game = get_game_or_default(instance.get("gameId"))
+    network = get_provider_for_game(game.id).network
+    selected = network.resolve_ports(instance)
+    rules: list[FirewallRule] = []
+    definitions = list(network.port_definitions)
+    if game.id == "palworld":
+        order = {"game": 0, "query": 1, "restApi": 2}
+        definitions.sort(key=lambda item: order.get(item.key, 99))
+    for definition in definitions:
+        if not network.firewall_enabled(definition, instance, include_management=include_rest):
+            continue
+        port = selected.get(definition.key)
+        if port is None and definition.relative_to and selected.get(definition.relative_to) is not None:
+            port = selected[definition.relative_to] + definition.offset
+        port = port or definition.default
+        role = definition.label.replace(" Port", "")
+        rules.append(FirewallRule(f"{prefix} - {role} {definition.protocol} {port}", port, definition.protocol))
     return rules
 
 

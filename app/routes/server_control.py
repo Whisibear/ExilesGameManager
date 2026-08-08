@@ -1,14 +1,27 @@
 import asyncio
 import logging
-from pathlib import Path
 from typing import Any
 
 import psutil
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from app.services import activity_log, instance_store, mods_store, palworld_rest, palworld_settings, process_manager, server_update, task_queue
+from app.games.providers import (
+    ProviderUnavailableError,
+    get_provider_for_instance,
+)
+from app.games.providers.base import ServerControlProvider
+from app.services import (
+    activity_log,
+    conan_live_console,
+    conan_rcon,
+    instance_store,
+    mods_store,
+    process_manager,
+    task_queue,
+)
 from app.services.palworld_rest import PalworldRestError
+from app.services.conan_rcon import ConanRconError
 from app.services.process_manager import ProcessError
 from app.services.steamcmd import SteamCmdError
 
@@ -59,13 +72,27 @@ def _require_active_instance() -> dict[str, Any]:
     return instance
 
 
-def _status_view(instance: dict[str, Any] | None) -> dict[str, Any]:
+def _control_provider(
+    instance: dict[str, Any],
+) -> ServerControlProvider:
+    try:
+        return get_provider_for_instance(instance).control
+    except ProviderUnavailableError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+def _status_view(
+    instance: dict[str, Any] | None,
+    provider: ServerControlProvider | None = None,
+) -> dict[str, Any]:
     if not instance:
         return {**_OFFLINE_STATUS, **_system_load()}
 
+    resolved = provider or _control_provider(instance)
     stats = process_manager.get_status(instance["id"])
-    max_players = palworld_settings.read_max_players(Path(instance["serverPath"])) or 32
+    max_players = resolved.read_max_players(instance)
     mod_count = len(mods_store.load_mods(instance["id"]))
+    game = instance_store.get_game_definition(instance)
 
     return {
         **_OFFLINE_STATUS,
@@ -78,26 +105,21 @@ def _status_view(instance: dict[str, Any] | None) -> dict[str, Any]:
         "maxPlayers": max_players,
         "modCount": mod_count,
         "lastSavedAt": process_manager.get_last_saved(instance["id"]) or "",
+        "gameId": game.id,
+        "gameEdition": game.edition,
+        "providerId": resolved.game_id,
+        "capabilities": game.capabilities.to_dict(),
     }
 
 
-async def _status_view_async(instance: dict[str, Any] | None) -> dict[str, Any]:
-    view = await asyncio.to_thread(_status_view, instance)
-    if not instance or view["state"] not in ("online", "starting"):
-        return view
-    try:
-        metrics, info = await asyncio.gather(palworld_rest.metrics(instance), palworld_rest.info(instance))
-    except PalworldRestError as e:
-        logger.info("status: REST metrics skipped for %s (%s)", instance["name"], e.message)
-        return view
-    return {
-        **view,
-        "tickRateMs": metrics.get("serverframetime"),
-        "playersOnline": metrics.get("currentplayernum") or 0,
-        "maxPlayers": metrics.get("maxplayernum") or view["maxPlayers"],
-        "serverVersion": info.get("version") or view["serverVersion"],
-        "uptimeSeconds": metrics.get("uptime") or view["uptimeSeconds"],
-    }
+async def _status_view_async(
+    instance: dict[str, Any] | None,
+) -> dict[str, Any]:
+    if not instance:
+        return await asyncio.to_thread(_status_view, None)
+    provider = _control_provider(instance)
+    view = await asyncio.to_thread(_status_view, instance, provider)
+    return await provider.enrich_status(instance, view)
 
 
 @router.get("/status")
@@ -110,16 +132,19 @@ async def get_status() -> dict[str, Any]:
 async def start_server() -> dict[str, Any]:
     instance = _require_active_instance()
     activity_log.log("info", instance["name"], "Manual server start requested.")
+    provider = _control_provider(instance)
     try:
-        await asyncio.to_thread(process_manager.start, instance)
+        await provider.start(instance)
     except ProcessError as e:
         raise HTTPException(status_code=400, detail=e.message)
-    task_queue.enqueue(
-        "mods.verify_startup",
-        instance_id=instance["id"],
-        title="Verify mods after server start",
-    )
-    activity_log.log("info", instance["name"], "Mod startup verification queued in Task Queue.")
+    game = instance_store.get_game_definition(instance)
+    if game.family == "palworld":
+        task_queue.enqueue(
+            "mods.verify_startup",
+            instance_id=instance["id"],
+            title="Verify mods after server start",
+        )
+        activity_log.log("info", instance["name"], "Palworld mod startup verification queued in Task Queue.", instance_id=instance["id"])
     return await _status_view_async(instance)
 
 
@@ -127,13 +152,8 @@ async def start_server() -> dict[str, Any]:
 async def stop_server() -> dict[str, Any]:
     instance = _require_active_instance()
     activity_log.log("info", instance["name"], "Manual server stop requested.")
-    process_manager.mark_intentional_stop(instance["id"])
-    try:
-        await palworld_rest.shutdown(instance, 1, "Server stopping.")
-        await asyncio.sleep(3)
-    except PalworldRestError as e:
-        logger.info("stop: REST shutdown skipped for %s (%s)", instance["name"], e.message)
-    await asyncio.to_thread(process_manager.stop, instance["id"])
+    provider = _control_provider(instance)
+    await provider.stop(instance)
     return await _status_view_async(instance)
 
 
@@ -141,23 +161,19 @@ async def stop_server() -> dict[str, Any]:
 async def restart_server() -> dict[str, Any]:
     instance = _require_active_instance()
     activity_log.log("info", instance["name"], "Manual server restart requested.")
-    process_manager.mark_intentional_stop(instance["id"])
+    provider = _control_provider(instance)
     try:
-        await palworld_rest.shutdown(instance, 1, "Server restarting.")
-        await asyncio.sleep(3)
-    except PalworldRestError as e:
-        logger.info("restart: REST shutdown skipped for %s (%s)", instance["name"], e.message)
-    await asyncio.to_thread(process_manager.stop, instance["id"])
-    try:
-        await asyncio.to_thread(process_manager.start, instance)
+        await provider.restart(instance)
     except ProcessError as e:
         raise HTTPException(status_code=400, detail=e.message)
-    task_queue.enqueue(
-        "mods.verify_startup",
-        instance_id=instance["id"],
-        title="Verify mods after server start",
-    )
-    activity_log.log("info", instance["name"], "Mod startup verification queued in Task Queue.")
+    game = instance_store.get_game_definition(instance)
+    if game.family == "palworld":
+        task_queue.enqueue(
+            "mods.verify_startup",
+            instance_id=instance["id"],
+            title="Verify mods after server start",
+        )
+        activity_log.log("info", instance["name"], "Palworld mod startup verification queued in Task Queue.", instance_id=instance["id"])
     return await _status_view_async(instance)
 
 
@@ -165,11 +181,11 @@ async def restart_server() -> dict[str, Any]:
 async def save_world() -> dict[str, Any]:
     instance = _require_active_instance()
     activity_log.log("info", instance["name"], "Manual world save requested.")
+    provider = _control_provider(instance)
     try:
-        await palworld_rest.save(instance)
+        saved_at = await provider.save(instance)
     except PalworldRestError as e:
         raise HTTPException(status_code=400, detail=e.message)
-    saved_at = process_manager.record_save(instance["id"])
     activity_log.log("info", instance["name"], "World save completed successfully.")
     return {"savedAt": saved_at}
 
@@ -177,8 +193,9 @@ async def save_world() -> dict[str, Any]:
 @router.get("/update/check")
 async def check_update() -> dict[str, Any]:
     instance = _require_active_instance()
+    provider = _control_provider(instance)
     try:
-        return await server_update.check_for_update(instance)
+        return await provider.check_update(instance)
     except SteamCmdError as e:
         raise HTTPException(status_code=502, detail=e.message)
 
@@ -189,12 +206,15 @@ async def start_update() -> dict[str, Any]:
     status = process_manager.get_status(instance["id"])
     if status["state"] != "offline":
         raise HTTPException(status_code=400, detail="Stop this server before updating its files.")
-    return {"jobId": server_update.start_update(instance)}
+    provider = _control_provider(instance)
+    return {"jobId": provider.start_update(instance)}
 
 
 @router.get("/update/{job_id}")
 async def get_update_status(job_id: str) -> dict[str, Any]:
-    job = server_update.get_job(job_id)
+    instance = _require_active_instance()
+    provider = _control_provider(instance)
+    job = provider.get_update_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="No such update job.")
     return job
@@ -208,39 +228,146 @@ class BroadcastRequest(BaseModel):
 async def broadcast_message(body: BroadcastRequest) -> dict[str, Any]:
     instance = _require_active_instance()
     activity_log.log("info", instance["name"], "Broadcast message requested by an administrator.")
+    provider = _control_provider(instance)
     try:
-        await palworld_rest.announce(instance, body.message)
-    except PalworldRestError as e:
+        await provider.broadcast(instance, body.message)
+    except (PalworldRestError, ConanRconError) as e:
+        activity_log.log(
+            "error",
+            instance["name"],
+            f"Broadcast message failed: {e.message}",
+            instance_id=instance["id"],
+        )
         raise HTTPException(status_code=400, detail=e.message)
+    activity_log.log(
+        "info",
+        instance["name"],
+        "Broadcast message sent successfully.",
+        instance_id=instance["id"],
+    )
     return {"message": body.message}
 
 
-async def _try_broadcast(instance: dict[str, Any], message: str) -> None:
+class RconCommandRequest(BaseModel):
+    command: str
+
+
+@router.get("/rcon/status")
+async def get_rcon_status() -> dict[str, Any]:
+    instance = _require_active_instance()
+    game = instance_store.get_game_definition(instance)
+    if not game.capabilities.rcon:
+        raise HTTPException(
+            status_code=409,
+            detail=f"{game.label} does not expose RCON.",
+        )
     try:
-        await palworld_rest.announce(instance, message)
-    except PalworldRestError as e:
+        return await conan_rcon.check_ready(instance)
+    except ConanRconError as exc:
+        return {
+            "ready": False,
+            "host": "127.0.0.1",
+            "port": int((instance.get("ports") or {}).get("rcon") or instance.get("rconPort") or 25575),
+            "error": exc.message,
+        }
+
+
+@router.post("/rcon")
+async def execute_rcon_command(body: RconCommandRequest) -> dict[str, Any]:
+    instance = _require_active_instance()
+    provider = _control_provider(instance)
+    game = instance_store.get_game_definition(instance)
+    if not game.capabilities.rcon:
+        raise HTTPException(
+            status_code=409,
+            detail=f"{game.label} does not expose an RCON console.",
+        )
+    if provider.game_id != instance.get("gameId"):
+        raise HTTPException(status_code=409, detail="Active provider mismatch.")
+    command = conan_rcon.sanitize_command_for_log(body.command)
+    try:
+        response = await conan_rcon.execute(instance, body.command)
+    except ConanRconError as exc:
+        activity_log.log(
+            "error",
+            instance["name"],
+            f"Conan RCON command failed: {command}. {exc.message}",
+            instance_id=instance["id"],
+        )
+        raise HTTPException(status_code=400, detail=exc.message) from exc
+    activity_log.log(
+        "info",
+        instance["name"],
+        f"Conan RCON command executed: {command}.",
+        instance_id=instance["id"],
+    )
+    endpoint = conan_rcon.endpoint_for(instance)
+    return {"response": response, "command": command, "endpoint": f"{endpoint.host}:{endpoint.port}"}
+
+
+@router.get("/live-console")
+async def get_live_console(cursor: int | None = None) -> dict[str, Any]:
+    instance = _require_active_instance()
+    provider = _control_provider(instance)
+    game = instance_store.get_game_definition(instance)
+    if not game.capabilities.live_console:
+        raise HTTPException(
+            status_code=409,
+            detail=f"{game.label} does not expose a live server console.",
+        )
+    if provider.game_id != instance.get("gameId"):
+        raise HTTPException(status_code=409, detail="Active provider mismatch.")
+    return await asyncio.to_thread(
+        conan_live_console.read_chunk,
+        instance,
+        cursor,
+    )
+
+
+async def _try_broadcast(
+    instance: dict[str, Any],
+    provider: ServerControlProvider,
+    message: str,
+) -> None:
+    try:
+        await provider.broadcast(instance, message)
+    except (PalworldRestError, ConanRconError) as e:
         logger.info("shutdown countdown: broadcast skipped for %s (%s)", instance["name"], e.message)
 
 
-async def _run_countdown(instance: dict[str, Any], seconds: int) -> None:
+async def _run_countdown(
+    instance: dict[str, Any],
+    provider: ServerControlProvider,
+    seconds: int,
+) -> None:
     try:
-        await _try_broadcast(instance, f"The realm will fall silent in {seconds} seconds.")
+        await _try_broadcast(
+            instance,
+            provider,
+            f"The realm will fall silent in {seconds} seconds.",
+        )
         if seconds > 10:
             await asyncio.sleep(seconds - 10)
-            await _try_broadcast(instance, "The realm will fall silent in 10 seconds.")
+            await _try_broadcast(
+                instance,
+                provider,
+                "The realm will fall silent in 10 seconds.",
+            )
             await asyncio.sleep(10)
         else:
             await asyncio.sleep(seconds)
-        await _try_broadcast(instance, "The realm falls silent now.")
-        process_manager.mark_intentional_stop(instance["id"])
-        try:
-            await palworld_rest.shutdown(instance, 1, "Server shutting down.")
-            await asyncio.sleep(3)
-        except PalworldRestError as e:
-            logger.info("shutdown countdown: REST shutdown skipped for %s (%s)", instance["name"], e.message)
-        await asyncio.to_thread(process_manager.stop, instance["id"])
+        await _try_broadcast(
+            instance,
+            provider,
+            "The realm falls silent now.",
+        )
+        await provider.shutdown(instance, "Server shutting down.")
     except asyncio.CancelledError:
-        await _try_broadcast(instance, "The scheduled shutdown was cancelled.")
+        await _try_broadcast(
+            instance,
+            provider,
+            "The scheduled shutdown was cancelled.",
+        )
         raise
     finally:
         _countdown_tasks.pop(instance["id"], None)
@@ -258,7 +385,10 @@ async def start_shutdown_countdown(body: ShutdownCountdownRequest) -> dict[str, 
     existing = _countdown_tasks.get(instance["id"])
     if existing and not existing.done():
         raise HTTPException(status_code=400, detail="A shutdown countdown is already running for this server.")
-    _countdown_tasks[instance["id"]] = asyncio.create_task(_run_countdown(instance, body.seconds))
+    provider = _control_provider(instance)
+    _countdown_tasks[instance["id"]] = asyncio.create_task(
+        _run_countdown(instance, provider, body.seconds)
+    )
     return {"seconds": body.seconds}
 
 

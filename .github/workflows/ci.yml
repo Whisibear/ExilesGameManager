@@ -24,7 +24,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Compile public Python source
-        run: python -m compileall -q app Palworld_Server.py desktop_app.py
+        run: python -m compileall -q app EGM_Server.py Palworld_Server.py desktop_app.py
 
       - name: Verify application version metadata
         run: python scripts/check_app_version.py
@@ -210,6 +210,8 @@ jobs:
       - name: Smoke test packaged health endpoint
         shell: pwsh
         run: |
+          $env:EGM_SUPPRESS_BROWSER = "1"
+          $env:EGM_SUPPRESS_TRAY = "1"
           $proc = Start-Process -FilePath "dist\ExilesGameManager\ExilesGameManager.exe" -PassThru
           try {
             $ok = $false

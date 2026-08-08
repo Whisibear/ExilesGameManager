@@ -1,4 +1,4 @@
-"""SteamCMD-backed update checks integrated with the EGM task queue."""
+"""SteamCMD-backed dedicated-server update checks integrated with the EGM task queue."""
 import asyncio
 import logging
 from pathlib import Path
@@ -10,9 +10,21 @@ logger = logging.getLogger("egm.server_update")
 
 
 async def check_for_update(instance: dict[str, Any]) -> dict[str, Any]:
+    from app.games.providers import get_provider_for_game
+    from app.services import instance_store
+
+    game = instance_store.get_game_definition(instance)
+    definition = get_provider_for_game(game.id).deployment.steam_install_spec
     install_dir = Path(instance["serverPath"])
-    installed = await asyncio.to_thread(steamcmd.installed_build_id, install_dir)
-    latest = await steamcmd.latest_public_build_id()
+    installed = await asyncio.to_thread(
+        steamcmd.installed_build_id_for_app,
+        install_dir,
+        definition.app_id,
+    )
+    latest = await steamcmd.latest_build_id(
+        definition.app_id,
+        branch=definition.branch or "public",
+    )
     return {
         "installedBuildId": installed,
         "latestBuildId": latest,
@@ -21,25 +33,49 @@ async def check_for_update(instance: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-async def run_update_operation(ctx: task_queue.TaskContext, instance: dict[str, Any]) -> dict[str, Any]:
+async def run_update_operation(
+    ctx: task_queue.TaskContext,
+    instance: dict[str, Any],
+) -> dict[str, Any]:
+    from app.games.providers import get_provider_for_game
+    from app.services import activity_log, instance_store
+
+    game = instance_store.get_game_definition(instance)
+    provider = get_provider_for_game(game.id)
     ctx.progress(5, "Checking Steam build IDs")
-    ctx.log("Checking installed and latest Steam build IDs.")
+    ctx.log(f"Checking installed and latest Steam build IDs for {game.label}.")
+    activity_log.log(
+        "info",
+        instance["name"],
+        f"{game.label} server update started in Task Queue.",
+        instance_id=instance["id"],
+    )
     before = await check_for_update(instance)
     await ctx.checkpoint()
-    ctx.progress(15, "Running SteamCMD update")
+    ctx.progress(15, f"Running SteamCMD update for {game.label}")
 
     def on_output(line: str) -> None:
         ctx.log(line, "debug")
 
-    await steamcmd.install_palserver(Path(instance["serverPath"]), on_output=on_output)
+    await provider.deployment.install_server(
+        Path(instance["serverPath"]),
+        on_output=on_output,
+    )
     await ctx.checkpoint()
     ctx.progress(90, "Validating updated build")
     after = await check_for_update(instance)
+    activity_log.log(
+        "info",
+        instance["name"],
+        f"{game.label} server update completed successfully.",
+        instance_id=instance["id"],
+    )
     return {
         "installedBuildId": after["installedBuildId"],
         "latestBuildId": after["latestBuildId"],
         "before": before,
         "after": after,
+        "gameId": game.id,
     }
 
 
@@ -59,8 +95,13 @@ def get_job(job_id: str) -> dict[str, Any] | None:
         return None
     result = task.get("result") or {}
     status_map = {
-        "queued": "running", "paused": "running", "running": "running", "cancelling": "running",
-        "completed": "done", "failed": "error", "cancelled": "error",
+        "queued": "running",
+        "paused": "running",
+        "running": "running",
+        "cancelling": "running",
+        "completed": "done",
+        "failed": "error",
+        "cancelled": "error",
     }
     return {
         "status": status_map.get(task.get("status"), "running"),

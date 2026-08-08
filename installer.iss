@@ -1,6 +1,6 @@
 #define MyAppName "Exiles Game Manager"
-#define MyAppVersion "0.8.1-beta.7"
-#define MyWindowsVersion "0.8.1.7"
+#define MyAppVersion "0.8.1-beta.8"
+#define MyWindowsVersion "0.8.1.8"
 #define MyAppPublisher "Whisibear"
 #define MyAppURL "https://github.com/Whisibear/ExilesGameManager"
 #define MyAppExeName "ExilesGameManager.exe"
@@ -34,6 +34,7 @@ WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=admin
+UsedUserAreasWarning=no
 CloseApplications=no
 RestartApplications=no
 RestartIfNeededByRun=no
@@ -60,10 +61,12 @@ english.InstallingRuntime=Installing Microsoft Visual C++ Runtime and SteamCMD..
 german.InstallingRuntime=Microsoft Visual C++ Runtime und SteamCMD werden installiert...
 english.LaunchProgram=Launch Exiles Game Manager
 german.LaunchProgram=Exiles Game Manager starten
+english.TrayInfo=Exiles Game Manager keeps running in the Windows notification area. Use the tray icon and choose Quit to close EGM cleanly. Running dedicated game servers are not stopped.
+german.TrayInfo=Exiles Game Manager läuft im Windows-Infobereich weiter. Verwenden Sie das Tray-Symbol und wählen Sie Beenden, um EGM sauber zu schließen. Laufende Dedicated-Server werden dabei nicht gestoppt.
 english.RemoveUserData=Remove all EGM application data stored under LocalAppData, including configuration, OAuth tokens, cache, logs and downloads?%n%nChoose No to preserve these settings for a later reinstall.
 german.RemoveUserData=Alle EGM-Anwendungsdaten unter LocalAppData löschen, einschließlich Konfiguration, OAuth-Tokens, Cache, Logs und Downloads?%n%nWählen Sie Nein, um diese Einstellungen für eine spätere Neuinstallation zu behalten.
-english.RemoveRuntimeData=Remove all EGM runtime data, server registrations, downloaded tools, logs and server files stored under ProgramData?%n%nChoose No to preserve servers and runtime data. Login accounts are removed in either case.
-german.RemoveRuntimeData=Alle EGM-Laufzeitdaten, Serverregistrierungen, heruntergeladenen Werkzeuge, Logs und unter ProgramData gespeicherten Serverdateien löschen?%n%nWählen Sie Nein, um Server und Laufzeitdaten zu behalten. Benutzerkonten werden in jedem Fall entfernt.
+english.RemoveRuntimeData=Remove EGM machine-wide runtime data stored under ProgramData, including server registrations, downloaded tools, logs and only server files that are physically stored inside the EGM ProgramData tree?%n%nExternal Palworld/Conan server folders are never deleted by this option. Choose No to preserve all ProgramData runtime state. Login accounts are removed in either case.
+german.RemoveRuntimeData=Maschinenweite EGM-Laufzeitdaten unter ProgramData löschen, einschließlich Serverregistrierungen, heruntergeladenen Werkzeugen, Logs und nur solchen Serverdateien, die tatsächlich innerhalb des EGM-ProgramData-Verzeichnisses liegen?%n%nExterne Palworld-/Conan-Serverordner werden durch diese Option niemals gelöscht. Wählen Sie Nein, um alle ProgramData-Laufzeitdaten zu behalten. Benutzerkonten werden in jedem Fall entfernt.
 english.MaintenanceTitle=Maintain Exiles Game Manager
 german.MaintenanceTitle=Exiles Game Manager verwalten
 english.MaintenanceDescription=An existing installation was detected. Choose the action to perform.
@@ -259,6 +262,8 @@ begin
   end;
 end;
 
+procedure StopEGMProcesses(); forward;
+
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
   RemoveUserData: Integer;
@@ -266,6 +271,8 @@ var
 begin
   if CurUninstallStep = usUninstall then
   begin
+    StopEGMProcesses();
+
     RemoveUserData := MsgBox(
       ExpandConstant('{cm:RemoveUserData}'),
       mbConfirmation,
@@ -288,10 +295,44 @@ procedure StopEGMProcesses();
 var
   ResultCode: Integer;
   PowerShellExe: String;
-  CommandLine: String;
+  GracefulCommand: String;
+  FallbackCommand: String;
 begin
   PowerShellExe := ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe');
-  CommandLine :=
+
+  { E.11: request a graceful application shutdown first. This allows Uvicorn
+    shutdown hooks to finish and deliberately leaves managed game servers running. }
+  GracefulCommand :=
+    '-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "' +
+    '$ErrorActionPreference = ''SilentlyContinue''; ' +
+    'try { ' +
+    '$event = [System.Threading.EventWaitHandle]::OpenExisting(''Local\ExilesGameManager.Quit''); ' +
+    '$null = $event.Set(); $event.Dispose(); ' +
+    '} catch {}; ' +
+    '$deadline = (Get-Date).AddSeconds(15); ' +
+    'do { ' +
+    '$running = Get-Process -Name ''ExilesGameManager'' -ErrorAction SilentlyContinue; ' +
+    'if (-not $running) { exit 0 }; Start-Sleep -Milliseconds 250 ' +
+    '} while ((Get-Date) -lt $deadline); exit 1"';
+
+  Log('Stopping EGM and EGM-owned backend processes before file replacement.');
+  Log('Requesting graceful EGM shutdown through the E.11 tray quit event.');
+  if Exec(
+    PowerShellExe,
+    GracefulCommand,
+    '',
+    SW_HIDE,
+    ewWaitUntilTerminated,
+    ResultCode
+  ) and (ResultCode = 0) then
+  begin
+    Log('EGM stopped gracefully.');
+    Exit;
+  end;
+
+  { Last resort: stop only EGM application/backend processes. Palworld and
+    Conan dedicated-server executables are never selected by this fallback. }
+  FallbackCommand :=
     '-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "' +
     '$ErrorActionPreference = ''SilentlyContinue''; ' +
     '$installDir = [IO.Path]::GetFullPath(''' + ExpandConstant('{app}') + ''').TrimEnd(''\''); ' +
@@ -300,33 +341,13 @@ begin
     '(($_.Name -in @(''python.exe'',''pythonw.exe'',''uvicorn.exe'')) -and ' +
     '(($_.ExecutablePath -and $_.ExecutablePath.StartsWith($installDir,[StringComparison]::OrdinalIgnoreCase)) -or ' +
     '($_.CommandLine -and $_.CommandLine.IndexOf($installDir,[StringComparison]::OrdinalIgnoreCase) -ge 0))) }; ' +
-    '$targets | ForEach-Object { Stop-Process -Id $_.ProcessId -ErrorAction SilentlyContinue }; ' +
-    'Start-Sleep -Seconds 3; ' +
-    '$targets = Get-CimInstance Win32_Process | Where-Object { ' +
-    '($_.Name -ieq ''ExilesGameManager.exe'') -or ' +
-    '(($_.Name -in @(''python.exe'',''pythonw.exe'',''uvicorn.exe'')) -and ' +
-    '(($_.ExecutablePath -and $_.ExecutablePath.StartsWith($installDir,[StringComparison]::OrdinalIgnoreCase)) -or ' +
-    '($_.CommandLine -and $_.CommandLine.IndexOf($installDir,[StringComparison]::OrdinalIgnoreCase) -ge 0))) }; ' +
     '$targets | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }; ' +
     'Start-Sleep -Seconds 2; exit 0"';
 
-  Log('Stopping EGM and EGM-owned backend processes before file replacement.');
-  if not Exec(
-    PowerShellExe,
-    CommandLine,
-    '',
-    SW_HIDE,
-    ewWaitUntilTerminated,
-    ResultCode
-  ) then
-    Log('EGM shutdown helper could not be started.')
-  else
-    Log(Format('EGM shutdown helper returned exit code %d.', [ResultCode]));
-
-  { Last-resort fallback for the main launcher only. }
+  Log('Graceful EGM shutdown timed out; using EGM-only fallback termination.');
   Exec(
-    ExpandConstant('{sys}\taskkill.exe'),
-    '/F /T /IM ExilesGameManager.exe',
+    PowerShellExe,
+    FallbackCommand,
     '',
     SW_HIDE,
     ewWaitUntilTerminated,
@@ -338,7 +359,6 @@ procedure CurStepChanged(CurStep: TSetupStep);
 var
   LogFile: String;
   OperationName: String;
-  ResultCode: Integer;
 begin
   if CurStep = ssInstall then
   begin

@@ -24,6 +24,12 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { appUpdateApi } from "@/api";
 import type { AppUpdateStatus } from "@/types/models";
+import { useServerStatus } from "@/hooks/useServerStatus";
+import type { GameCapability } from "@/lib/gameCapabilities";
+import {
+  supportsAnyCapability,
+  supportsCapability,
+} from "@/lib/gameCapabilities";
 
 interface NavigationItem {
   to: string;
@@ -31,6 +37,8 @@ interface NavigationItem {
   icon: typeof Server;
   end?: boolean;
   superAdminOnly?: boolean;
+  capability?: GameCapability;
+  anyCapability?: readonly GameCapability[];
 }
 
 const NAVIGATION_GROUPS: Array<{ key: string; items: NavigationItem[] }> = [
@@ -44,9 +52,9 @@ const NAVIGATION_GROUPS: Array<{ key: string; items: NavigationItem[] }> = [
   {
     key: "server",
     items: [
-      { to: "/control", labelKey: "control", icon: Swords },
-      { to: "/world-settings", labelKey: "worldSettings", icon: SlidersHorizontal },
-      { to: "/mods", labelKey: "mods", icon: BookOpen },
+      { to: "/control", labelKey: "control", icon: Swords, capability: "server_control" },
+      { to: "/world-settings", labelKey: "worldSettings", icon: SlidersHorizontal, capability: "server_settings" },
+      { to: "/mods", labelKey: "mods", icon: BookOpen, anyCapability: ["steam_workshop", "nexus_mods"] },
     ],
   },
   {
@@ -60,15 +68,15 @@ const NAVIGATION_GROUPS: Array<{ key: string; items: NavigationItem[] }> = [
   {
     key: "maintenance",
     items: [
-      { to: "/backup-center", labelKey: "backupCenter", icon: ArchiveRestore, superAdminOnly: true },
-      { to: "/firewall", labelKey: "firewall", icon: ShieldCheck, superAdminOnly: true },
-      { to: "/performance", labelKey: "performance", icon: Activity },
+      { to: "/backup-center", labelKey: "backupCenter", icon: ArchiveRestore, superAdminOnly: true, capability: "backups" },
+      { to: "/firewall", labelKey: "firewall", icon: ShieldCheck, superAdminOnly: true, capability: "firewall_management" },
+      { to: "/performance", labelKey: "performance", icon: Activity, capability: "performance_monitoring" },
     ],
   },
   {
     key: "administration",
     items: [
-      { to: "/mod-wishlist", labelKey: "modWishlist", icon: Heart, superAdminOnly: true },
+      { to: "/mod-wishlist", labelKey: "modWishlist", icon: Heart, superAdminOnly: true, capability: "nexus_mods" },
       { to: "/launcher-options", labelKey: "launcherOptions", icon: Rocket, superAdminOnly: true },
       { to: "/settings", labelKey: "settings", icon: Settings2, superAdminOnly: true },
       { to: "/super-admin", labelKey: "superAdmin", icon: Crown, superAdminOnly: true },
@@ -114,6 +122,7 @@ function NavItem({ item }: { item: NavigationItem }) {
 export function Sidebar() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { status: serverStatus } = useServerStatus(15000);
   const [updateStatus, setUpdateStatus] = React.useState<AppUpdateStatus | null>(null);
 
   React.useEffect(() => {
@@ -135,7 +144,22 @@ export function Sidebar() {
       <nav className="flex-1 overflow-y-auto px-2 py-4 lg:px-3">
         <div className="space-y-5">
           {NAVIGATION_GROUPS.map((group) => {
-            const items = group.items.filter((item) => !item.superAdminOnly || user.role === "super_admin");
+            const items = group.items.filter((item) => {
+              if (item.superAdminOnly && user.role !== "super_admin") return false;
+              if (
+                item.capability &&
+                !supportsCapability(serverStatus, item.capability)
+              ) {
+                return false;
+              }
+              if (
+                item.anyCapability &&
+                !supportsAnyCapability(serverStatus, item.anyCapability)
+              ) {
+                return false;
+              }
+              return true;
+            });
             if (!items.length) return null;
             return (
               <section key={group.key}>

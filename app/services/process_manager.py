@@ -20,6 +20,7 @@ from typing import Any
 import psutil
 
 from app.services import activity_log, instance_store, palworld_settings, public_ip, upnp
+from app.services.windows_subprocess import hidden_process_kwargs
 
 logger = logging.getLogger("egm.process_manager")
 
@@ -35,7 +36,11 @@ _recent_intentional_stop: dict[str, float] = {}
 # in this module. Populated by both a manual Save World click and a
 # scheduled backup's own live-save step.
 _last_saved_at: dict[str, str] = {}
-_PALWORLD_PROCESS_NAMES = {"palserver.exe", "palserver-win64-shipping-cmd.exe"}
+_PALWORLD_PROCESS_NAMES = {
+    "palserver.exe",
+    "palserver-win64-shipping.exe",
+    "palserver-win64-shipping-cmd.exe",
+}
 
 
 class ProcessError(Exception):
@@ -59,7 +64,22 @@ def get_started_at(instance_id: str) -> float | None:
 
 
 def _exe_path(instance: dict[str, Any]) -> Path:
-    return Path(instance["serverPath"]) / "PalServer.exe"
+    server_root = Path(instance["serverPath"])
+    win64 = server_root / "Pal" / "Binaries" / "Win64"
+
+    # Palworld's Windows dedicated server ultimately runs the -Cmd worker.
+    # Starting that worker directly lets EGM apply CREATE_NO_WINDOW to the
+    # actual long-lived process instead of hiding only a launcher that later
+    # creates a visible child console. It is also the executable UE4SS hooks
+    # on dedicated servers.
+    for candidate in (
+        win64 / "PalServer-Win64-Shipping-Cmd.exe",
+        win64 / "PalServer-Win64-Shipping.exe",
+        server_root / "PalServer.exe",
+    ):
+        if candidate.is_file():
+            return candidate
+    return server_root / "PalServer.exe"
 
 
 def _public_ip_override_value() -> str | None:
@@ -183,13 +203,26 @@ def start(instance: dict[str, Any]) -> None:
         if _is_alive(instance_id) or _instance_processes(instance):
             raise ProcessError("This server is already running.")
 
+        server_root = Path(instance["serverPath"])
         exe = _exe_path(instance)
         if not exe.is_file():
-            raise ProcessError(f"PalServer.exe wasn't found at '{exe}'.")
+            raise ProcessError(f"Palworld dedicated-server executable wasn't found at '{exe}'.")
 
         game_port = instance_store.resolve_game_port(instance)
-        game_port = palworld_settings.enforce_game_port(exe.parent, game_port, prefer_fallback=True)
-        rest_config = palworld_settings.enforce_rest_api(exe.parent, instance.get("rconPort") or 8212)
+        game_port = palworld_settings.enforce_game_port(server_root, game_port, prefer_fallback=True)
+        repaired_respawn = palworld_settings.enforce_safe_respawn_settings(server_root)
+        if repaired_respawn:
+            activity_log.log(
+                "info",
+                instance["name"],
+                "Palworld respawn safety values repaired to minimum 1: " + ", ".join(repaired_respawn) + ".",
+            )
+            logger.info(
+                "process_manager: repaired unsafe Palworld respawn values for %r: %s",
+                instance["name"],
+                ", ".join(repaired_respawn),
+            )
+        rest_config = palworld_settings.enforce_rest_api(server_root, instance.get("rconPort") or 8212)
         if rest_config["passwordGenerated"]:
             logger.info(
                 "process_manager: generated AdminPassword for %r so Palworld REST API can authenticate",
@@ -220,17 +253,20 @@ def start(instance: dict[str, Any]) -> None:
         if instance.get("jsonLogFormat"):
             launch_args.append("-logformat=json")
 
+        process_kwargs = hidden_process_kwargs()
+        if os.name == "nt":
+            process_kwargs["creationflags"] = (
+                int(process_kwargs.get("creationflags", 0))
+                | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+            )
+
         proc = subprocess.Popen(
             launch_args,
             cwd=str(exe.parent),
-            # Keep Palworld's own server window visible so the host can see at
-            # a glance that it is running. stdout/stderr still do not contain
-            # the window text - Palworld renders that content through its own
-            # console/overlay path rather than writing normal process output.
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             stdin=subprocess.DEVNULL,
+            **process_kwargs,
         )
         _processes[instance_id] = proc
         _started_at[instance_id] = time.time()

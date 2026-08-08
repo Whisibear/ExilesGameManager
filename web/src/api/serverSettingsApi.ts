@@ -1,12 +1,21 @@
 import { api } from "./httpClient";
 import type { SettingField } from "@/types/models";
 
-// GET /api/server-settings
-export async function getSettings(): Promise<{ fields: SettingField[] }> {
-  return api.get<{ fields: SettingField[] }>("/api/server-settings");
+export interface ServerSettingsView {
+  fields: SettingField[];
+  gameId: string;
+  gameFamily: string;
+  gameEdition: string;
+  gameLabel: string;
+  providerId: string;
+  restartRequired: boolean;
+  changedKeys: string[];
 }
 
-// POST /api/server-settings
-export async function updateSettings(values: Record<string, unknown>): Promise<{ fields: SettingField[] }> {
-  return api.post<{ fields: SettingField[] }>("/api/server-settings", { values });
+export async function getSettings(): Promise<ServerSettingsView> {
+  return api.get<ServerSettingsView>("/api/server-settings");
+}
+
+export async function updateSettings(values: Record<string, unknown>): Promise<ServerSettingsView> {
+  return api.post<ServerSettingsView>("/api/server-settings", { values });
 }

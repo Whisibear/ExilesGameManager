@@ -18,3 +18,16 @@ The installer downloads SteamCMD directly from Valve's official distribution end
 ## Runtime packages
 
 Python and JavaScript package licenses remain available from their respective package distributions and source repositories. EGM does not claim ownership of third-party dependencies.
+
+
+## mcrcon protocol reference
+
+EGM's in-tree Source/Minecraft RCON transport is interoperable with the packet behavior used by Tiiffi/mcrcon. EGM does not bundle mcrcon.exe and does not require a separate mcrcon installation. mcrcon is distributed under the zlib license; project and license: https://github.com/Tiiffi/mcrcon.
+
+## pystray
+
+EGM uses pystray for the packaged Windows notification-area icon and tray menu. pystray is distributed under the GNU Lesser General Public License v3 (LGPLv3).
+
+## Pillow
+
+EGM uses Pillow to load/render the tray icon image. Pillow is distributed under the Historical Permission Notice and Disclaimer (HPND) license.

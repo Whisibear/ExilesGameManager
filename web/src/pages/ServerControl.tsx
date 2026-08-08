@@ -17,8 +17,14 @@ import { BroadcastDialog } from "@/components/serverControl/BroadcastDialog";
 import { ShutdownCountdownDialog } from "@/components/serverControl/ShutdownCountdownDialog";
 import { UpdateConfirmDialog } from "@/components/serverControl/UpdateConfirmDialog";
 import { ServerUpdateProgressPanel } from "@/components/serverControl/ServerUpdateProgressPanel";
+import { ConanLiveConsole } from "@/components/serverControl/ConanLiveConsole";
 import { completeQuestStep } from "@/lib/questCompletion";
 import { QuestSpotlight } from "@/components/university/QuestSpotlight";
+import { CapabilityBoundary } from "@/components/games/CapabilityBoundary";
+import {
+  supportsAnyCapability,
+  supportsCapability,
+} from "@/lib/gameCapabilities";
 
 type Action = "start" | "stop" | "restart" | "save" | "check-update" | "check-mod-updates" | "update" | null;
 
@@ -46,6 +52,12 @@ export default function ServerControl() {
     refresh
   );
 
+  const canControl = supportsCapability(status, "server_control");
+  const canCheckMods = supportsAnyCapability(status, [
+    "steam_workshop",
+    "nexus_mods",
+  ]);
+  const canRemoteCommand = supportsAnyCapability(status, ["rest_api", "rcon"]);
   const isOnline = status?.state === "online";
   const isTransitioning =
     status?.state === "starting" || status?.state === "stopping" || status?.state === "restarting";
@@ -335,7 +347,7 @@ export default function ServerControl() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <QuestSpotlight stepId="start_server">
             <StartServerControl
-              disabled={isOnline || isTransitioning}
+              disabled={!canControl || isOnline || isTransitioning}
               busy={busyAction === "start"}
               onStart={handleStart}
             />
@@ -345,7 +357,7 @@ export default function ServerControl() {
               icon={<Square />}
               label={t("serverControl.stopServer", { defaultValue: "Stop Server" })}
               variant="danger"
-              disabled={!isOnline}
+              disabled={!canControl || !isOnline}
               loading={busyAction === "stop"}
               onClick={() => setConfirmAction("stop")}
             />
@@ -354,24 +366,26 @@ export default function ServerControl() {
             icon={<RotateCw />}
             label={t("serverControl.restartServer", { defaultValue: "Restart Server" })}
             variant="gold"
-            disabled={!isOnline}
+            disabled={!canControl || !isOnline}
             loading={busyAction === "restart"}
             onClick={() => setConfirmAction("restart")}
           />
-          <ServerActionButton
-            icon={<Save />}
-            label={t("serverControl.saveWorld", { defaultValue: "Save World" })}
-            variant="mana"
-            disabled={!isOnline}
-            loading={busyAction === "save"}
-            onClick={handleSave}
-          />
+          {status?.gameId === "palworld" && (
+            <ServerActionButton
+              icon={<Save />}
+              label={t("serverControl.saveWorld", { defaultValue: "Save World" })}
+              variant="mana"
+              disabled={!canControl || !isOnline}
+              loading={busyAction === "save"}
+              onClick={handleSave}
+            />
+          )}
           <QuestSpotlight stepId="check_updates">
             <ServerActionButton
               icon={<DownloadCloud />}
               label={t("serverControl.checkUpdates", { defaultValue: "Check Updates" })}
               variant="life"
-              disabled={isTransitioning || updateRunning}
+              disabled={!canControl || isTransitioning || updateRunning}
               loading={busyAction === "check-update" || updateRunning}
               onClick={handleCheckUpdate}
             />
@@ -380,7 +394,7 @@ export default function ServerControl() {
             icon={<PackageSearch />}
             label={t("serverControl.checkModUpdates", { defaultValue: "Check Mod Updates" })}
             variant="life"
-            disabled={isTransitioning}
+            disabled={!canCheckMods || isTransitioning}
             loading={busyAction === "check-mod-updates"}
             onClick={handleCheckModUpdates}
           />
@@ -388,20 +402,24 @@ export default function ServerControl() {
             icon={<Megaphone />}
             label={t("serverControl.broadcastMessage", { defaultValue: "Broadcast Message" })}
             variant="arcane"
-            disabled={!isOnline}
+            disabled={!canRemoteCommand || !isOnline}
             onClick={() => setBroadcastOpen(true)}
           />
           <ServerActionButton
             icon={<TimerOff />}
             label={t("serverControl.shutdownCountdown", { defaultValue: "Shutdown Countdown" })}
             variant="danger"
-            disabled={!isOnline || countdown !== null}
+            disabled={!canRemoteCommand || !isOnline || countdown !== null}
             onClick={() => setShutdownOpen(true)}
           />
         </div>
       </Panel>
 
       {updateJob && <ServerUpdateProgressPanel updateJob={updateJob} />}
+
+      <CapabilityBoundary status={status} capability="live_console">
+        <ConanLiveConsole online={isOnline} />
+      </CapabilityBoundary>
 
       <Modal
         open={confirmAction === "stop"}

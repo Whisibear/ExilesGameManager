@@ -371,6 +371,9 @@ def read_all_settings(server_path: Path) -> list[dict[str, Any]]:
                 "options": meta.get("options"),
                 "sensitive": meta.get("sensitive", False),
                 "popular": key in _POPULAR_META,
+                "minimum": meta.get("minimum"),
+                "maximum": meta.get("maximum"),
+                "step": meta.get("step"),
             }
         )
 
@@ -382,6 +385,40 @@ def read_all_settings(server_path: Path) -> list[dict[str, Any]]:
         )
     )
     return fields
+
+
+def enforce_safe_respawn_settings(server_path: Path) -> list[str]:
+    """Repair Palworld respawn values that are known to break at zero.
+
+    This is intentionally narrow: only the two respawn timing fields requested
+    by EGM are normalized, and only when their current numeric value is below
+    the supported minimum.
+    """
+    ini_path = _settings_ini_path(server_path)
+    if not ini_path.is_file():
+        return []
+    text = ini_path.read_text(encoding="utf-8-sig")
+    match = _OPTION_LINE_RE.search(text)
+    if not match:
+        return []
+    pairs = parse_option_settings(match.group(1))
+    changed: list[str] = []
+    for key in ("BlockRespawnTime", "RespawnPenaltyDurationThreshold"):
+        raw = pairs.get(key)
+        if raw is None:
+            continue
+        try:
+            current = float(raw.strip().strip('"'))
+        except ValueError:
+            continue
+        if current < 1:
+            pairs[key] = "1" if infer_field_type(raw) == "int" else "1.000000"
+            changed.append(key)
+    if changed:
+        new_line = f"OptionSettings=({serialize_option_settings(pairs)})"
+        text = text[: match.start()] + new_line + text[match.end() :]
+        ini_path.write_text(text, encoding="utf-8")
+    return changed
 
 
 def write_settings(server_path: Path, updates: dict[str, Any]) -> None:
@@ -406,6 +443,21 @@ def write_settings(server_path: Path, updates: dict[str, Any]) -> None:
         if key not in pairs:
             raise ValueError(f"Unknown setting: {key}")
         field_type = infer_field_type(pairs[key])
+        meta = _POPULAR_META.get(key) or _ADVANCED_META.get(key) or {}
+        minimum = meta.get("minimum")
+        maximum = meta.get("maximum")
+        if minimum is not None or maximum is not None:
+            if field_type == "int":
+                numeric_value = int(new_value)
+            elif field_type == "float":
+                numeric_value = _parse_decimal_value(new_value)
+            else:
+                numeric_value = None
+            if numeric_value is not None:
+                if minimum is not None and numeric_value < minimum:
+                    raise ValueError(f"{meta.get('label') or key} must be at least {minimum}.")
+                if maximum is not None and numeric_value > maximum:
+                    raise ValueError(f"{meta.get('label') or key} must be at most {maximum}.")
         pairs[key] = _encode_value(new_value, field_type)
 
     new_line = f"OptionSettings=({serialize_option_settings(pairs)})"

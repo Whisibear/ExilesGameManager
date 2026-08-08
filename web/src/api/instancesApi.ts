@@ -1,5 +1,13 @@
 import { api } from "./httpClient";
-import type { InstanceListView, ServerInstance, DeployJob } from "@/types/models";
+import type {
+  DeployJob,
+  GameCatalog,
+  GamePortDefinition,
+  InstanceListView,
+  ServerInstance,
+} from "@/types/models";
+
+export async function listGames(): Promise<GameCatalog> { return api.get<GameCatalog>("/api/instances/games"); }
 
 // GET /api/instances
 export async function list(): Promise<InstanceListView> {
@@ -53,9 +61,31 @@ export async function setLaunchOptions(id: string, params: LaunchOptionsParams):
   return api.post<InstanceListView>(`/api/instances/${id}/launch-options`, params);
 }
 
+export interface ImportAnalysisIssue {
+  code: string;
+  severity: "info" | "warning" | "error";
+  titleKey: string;
+  messageKey: string;
+  fallbackTitle: string;
+  fallbackMessage: string;
+}
+
+export interface ImportAnalysis {
+  gameId: string;
+  gameFamily: string;
+  serverPath: string;
+  ready: boolean;
+  checks: Record<string, boolean>;
+  issues: ImportAnalysisIssue[];
+}
+
+export interface ImportExistingResult extends InstanceListView {
+  importAnalysis?: ImportAnalysis;
+}
+
 // POST /api/instances/import
-export async function importExisting(name: string, path: string): Promise<InstanceListView> {
-  return api.post<InstanceListView>("/api/instances/import", { name, path });
+export async function importExisting(name: string, path: string, gameId = "palworld"): Promise<ImportExistingResult> {
+  return api.post<ImportExistingResult>("/api/instances/import", { name, path, gameId });
 }
 
 // POST /api/instances/import/detect
@@ -84,8 +114,21 @@ export async function getDefaultDeployLocation(): Promise<{ path: string }> {
   return api.get<{ path: string }>("/api/instances/deploy/default-location");
 }
 
+export interface PortSuggestion extends GamePortDefinition {
+  port: number;
+}
+
+export async function suggestDeployPorts(
+  gameId: string,
+): Promise<{ gameId: string; ports: PortSuggestion[] }> {
+  return api.get<{ gameId: string; ports: PortSuggestion[] }>(
+    `/api/instances/deploy/ports?gameId=${encodeURIComponent(gameId)}`,
+  );
+}
+
 export interface DeployParams {
   name: string;
+  gameId?: string;
   gamePort: number;
   rconPort: number;
   queryPort: number;

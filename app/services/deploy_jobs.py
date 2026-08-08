@@ -11,8 +11,10 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+from app.games import DEFAULT_GAME_ID, require_deployable_game
+from app.games.providers import get_provider_for_game
 from app.paths import default_servers_dir
-from app.services import firewall, instance_store, palworld_settings, steamcmd
+from app.services import activity_log, firewall, instance_store, task_queue
 from app.services.steamcmd import SteamCmdError
 
 logger = logging.getLogger("egm.deploy_jobs")
@@ -48,13 +50,39 @@ def get_job(job_id: str) -> dict[str, Any] | None:
     return _jobs.get(job_id)
 
 
-def _append(job_id: str, line: str) -> None:
+def _append(job_id: str, line: str, *, level: str = "info", progress: float | None = None) -> None:
     job = _jobs.get(job_id)
     if not job:
         return
     job["log"].append(line)
     if len(job["log"]) > _MAX_LOG_LINES:
         job["log"] = job["log"][-_MAX_LOG_LINES:]
+    task_id = job.get("taskId")
+    if task_id:
+        task_queue.update_external_task(
+            task_id,
+            message=line,
+            progress=progress,
+            level=level,
+        )
+
+
+def _fail_job(job_id: str, message: str) -> None:
+    job = _jobs.get(job_id)
+    if not job:
+        return
+    job["status"] = "error"
+    job["error"] = message
+    _append(job_id, f"ERROR: {message}", level="error")
+    task_id = job.get("taskId")
+    if task_id:
+        task_queue.finish_external_task(
+            task_id,
+            success=False,
+            message="Server deployment failed.",
+            error=message,
+        )
+    activity_log.log("error", job.get("source") or "Deployment", f"Server deployment failed: {message}")
 
 
 async def _run_deploy(
@@ -64,51 +92,97 @@ async def _run_deploy(
     install_dir: Path,
     game_port: int,
     rcon_port: int,
-    query_port: int,
-    max_players: int,
+    query_port: int = 8213,
+    max_players: int = 32,
     template_path: Path | None = None,
+    game_id: str = DEFAULT_GAME_ID,
 ) -> None:
     try:
-        if template_path:
-            _append(job_id, f"Creating clean local copy from {template_path}...")
-            def ignore(path: str, names: list[str]) -> set[str]:
-                rel = Path(path).relative_to(template_path) if Path(path) != template_path else Path('.')
-                ignored: set[str] = set()
-                if rel == Path('Pal'):
-                    ignored.update({n for n in names if n == 'Saved'})
-                ignored.update({n for n in names if n in {'Mods', 'Backups', 'logs', '__pycache__'}})
-                ignored.update({n for n in names if n.endswith('.log') or n.endswith('.pid')})
-                return ignored
-            await asyncio.to_thread(shutil.copytree, template_path, install_dir, ignore=ignore, dirs_exist_ok=False)
-            _append(job_id, "Server binaries copied locally; saves, mods, logs and runtime data were excluded.")
+        game = require_deployable_game(game_id)
+        provider = get_provider_for_game(game.id)
+        deployment = provider.deployment
+        activity_log.log(
+            "info",
+            game.label,
+            f"Deployment started for server '{name}'.",
+        )
+        _append(job_id, f"Starting {game.label} deployment...", progress=5)
+        ports = {
+            "game": game_port,
+            "query": query_port,
+        }
+        if game.id == "palworld":
+            ports["restApi"] = rcon_port
         else:
-            _append(job_id, "Preparing SteamCMD...")
-            await steamcmd.install_palserver(install_dir, on_output=lambda line: _append(job_id, line))
+            ports["rcon"] = rcon_port
+            pinger = next(
+                (item for item in game.port_definitions if item.key == "pinger"),
+                None,
+            )
+            if pinger and pinger.relative_to == "game":
+                ports["pinger"] = game_port + pinger.offset
 
-        _append(job_id, "Writing initial server settings...")
-        # initialize_settings() always reads the copied server's own
-        # DefaultPalWorldSettings.ini (or a live ini when appropriate).  The
-        # template server path must not be forwarded here: it is not part of
-        # the settings service API and the clean clone has already copied the
-        # required template file into install_dir.
-        palworld_settings.initialize_settings(
+        if template_path:
+            _append(job_id, f"Creating clean local copy from {template_path}...", progress=15)
+
+            def ignore(path: str, names: list[str]) -> set[str]:
+                return deployment.clone_ignore(
+                    template_path,
+                    Path(path),
+                    names,
+                )
+
+            await asyncio.to_thread(
+                shutil.copytree,
+                template_path,
+                install_dir,
+                ignore=ignore,
+                dirs_exist_ok=False,
+            )
+            _append(
+                job_id,
+                "Server binaries copied locally; saves, logs and runtime "
+                "data were excluded according to the selected game provider.",
+            )
+        else:
+            _append(job_id, f"Preparing SteamCMD for {game.label}...", progress=15)
+            await deployment.install_server(
+                install_dir,
+                on_output=lambda line: _append(job_id, line),
+            )
+
+        _append(job_id, f"Writing initial {game.label} server settings...", progress=65)
+        deployment.initialize_server(
             install_dir,
-            server_name=name,
-            game_port=game_port,
-            rcon_port=rcon_port,
+            name=name,
+            ports=ports,
             max_players=max_players,
         )
 
+        legacy_game, legacy_management, legacy_query = (
+            deployment.legacy_instance_ports(ports)
+        )
         instance = instance_store.create_instance(
             name=name,
             server_path=str(install_dir),
             source="deployed",
-            game_port=game_port,
-            rcon_port=rcon_port,
-            query_port=query_port,
+            game_port=legacy_game,
+            rcon_port=legacy_management,
+            query_port=legacy_query,
             use_query_port=True,
+            game_id=game.id,
+            ports=ports,
         )
-        _append(job_id, "Configuring Windows Firewall...")
+        task_id = _jobs[job_id].get("taskId")
+        if task_id:
+            task_queue.bind_external_task_instance(task_id, instance["id"])
+        activity_log.log(
+            "info",
+            instance["name"],
+            f"{game.label} instance registered after deployment.",
+            instance_id=instance["id"],
+        )
+        _append(job_id, "Configuring Windows Firewall...", progress=82)
         try:
             fw = await asyncio.to_thread(firewall.sync_instance, instance)
             created = fw.get("created", [])
@@ -116,25 +190,34 @@ async def _run_deploy(
         except firewall.FirewallError as e:
             _append(job_id, f"WARNING: Firewall setup was not completed: {e.message}")
             _jobs[job_id]["warning"] = e.message
-        _append(job_id, "Done.")
+        _append(job_id, "Done.", progress=100)
         _jobs[job_id]["instanceId"] = instance["id"]
         _jobs[job_id]["status"] = "done"
+        activity_log.log(
+            "info",
+            instance["name"],
+            f"{game.label} deployment completed successfully.",
+            instance_id=instance["id"],
+        )
+        task_id = _jobs[job_id].get("taskId")
+        if task_id:
+            task_queue.finish_external_task(
+                task_id,
+                success=True,
+                message=f"{game.label} deployment completed successfully.",
+            )
     except SteamCmdError as e:
         logger.warning("deploy_jobs: job %s failed: %s", job_id, e.message)
-        _jobs[job_id]["status"] = "error"
-        _jobs[job_id]["error"] = e.message
+        _fail_job(job_id, e.message)
     except OSError as e:
         logger.exception("deploy_jobs: job %s failed", job_id)
-        _jobs[job_id]["status"] = "error"
-        _jobs[job_id]["error"] = str(e)
+        _fail_job(job_id, str(e))
     except Exception as e:
         # A background task must never leave the deployment job in
         # ``running`` forever.  Unexpected programming/runtime errors are
         # surfaced to the polling frontend as a terminal error state.
         logger.exception("deploy_jobs: unexpected failure in job %s", job_id)
-        _jobs[job_id]["status"] = "error"
-        _jobs[job_id]["error"] = f"Unexpected deployment error: {e}"
-        _append(job_id, f"ERROR: {e}")
+        _fail_job(job_id, f"Unexpected deployment error: {e}")
 
 
 def start_deploy(
@@ -146,9 +229,23 @@ def start_deploy(
     query_port: int,
     max_players: int,
     template_path: Path | None = None,
+    game_id: str = DEFAULT_GAME_ID,
 ) -> str:
     job_id = f"deploy-{uuid.uuid4().hex[:10]}"
-    _jobs[job_id] = {"status": "running", "log": [], "error": None, "instanceId": None}
+    task_id = task_queue.create_external_task(
+        "server.deploy",
+        title=f"Deploy {name}",
+        message=f"Preparing deployment for {name}",
+        priority=70,
+    )
+    _jobs[job_id] = {
+        "status": "running",
+        "log": [],
+        "error": None,
+        "instanceId": None,
+        "taskId": task_id,
+        "source": name,
+    }
     asyncio.create_task(
         _run_deploy(
             job_id,
@@ -159,6 +256,7 @@ def start_deploy(
             query_port=query_port,
             max_players=max_players,
             template_path=template_path,
+            game_id=game_id,
         )
     )
     return job_id

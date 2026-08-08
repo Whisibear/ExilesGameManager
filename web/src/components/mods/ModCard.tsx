@@ -14,6 +14,7 @@ interface ModCardProps {
   onRequestUpdate: (mod: Mod) => void;
   updateRequested: boolean;
   busy?: boolean;
+  context?: "palworld" | "conan";
 }
 
 const STATUS_BADGE: Record<Mod["status"], string> = {
@@ -22,7 +23,7 @@ const STATUS_BADGE: Record<Mod["status"], string> = {
   broken: "border-blood-500/50 bg-blood-500/10 text-blood-400",
 };
 
-export function ModCard({ mod, onToggle, onRemove, onRequestUpdate, updateRequested, busy }: ModCardProps) {
+export function ModCard({ mod, onToggle, onRemove, onRequestUpdate, updateRequested, busy, context = "palworld" }: ModCardProps) {
   const { t } = useTranslation();
   const dragControls = useDragControls();
 
@@ -73,7 +74,17 @@ export function ModCard({ mod, onToggle, onRemove, onRequestUpdate, updateReques
               <div className="mt-3 flex items-center gap-2 rounded-md border border-stone-700 bg-abyss-950/40 px-3 py-2 text-xs text-parchment-300/75">
                 <ServerCog className="h-3.5 w-3.5 shrink-0" />
                 <span className={mod.deploymentStatus === "deployed" ? "text-life-400" : mod.deploymentStatus === "restart_failed" ? "text-blood-400" : "text-life-300"}>
-                  {mod.deploymentStatus === "deployed" ? t("mods.card.deployedByPalworld", { defaultValue: "Deployed by Palworld" }) : mod.deploymentStatus === "disabled" ? t("mods.card.deploymentDisabled", { defaultValue: "Disabled" }) : mod.deploymentStatus === "restart_failed" ? t("mods.card.restartFailed", { defaultValue: "Server restart failed" }) : t("mods.card.deploymentPending", { defaultValue: "Deployment pending" })}
+                  {mod.deploymentStatus === "deployed"
+                    ? context === "conan"
+                      ? t("mods.card.deployedByConan", { defaultValue: "Active in Conan mod list" })
+                      : t("mods.card.deployedByPalworld", { defaultValue: "Deployed by Palworld" })
+                    : mod.deploymentStatus === "disabled"
+                      ? t("mods.card.deploymentDisabled", { defaultValue: "Disabled" })
+                      : mod.deploymentStatus === "restart_failed"
+                        ? t("mods.card.restartFailed", { defaultValue: "Server restart failed" })
+                        : context === "conan"
+                          ? t("mods.card.conanRestartPending", { defaultValue: "Restart required" })
+                          : t("mods.card.deploymentPending", { defaultValue: "Deployment pending" })}
                 </span>
                 {mod.deploymentMessage && <span className="text-parchment-300/45">— {mod.deploymentMessage}</span>}
               </div>
@@ -127,14 +138,16 @@ export function ModCard({ mod, onToggle, onRemove, onRequestUpdate, updateReques
                       icon={<ArrowUpCircle />}
                       onClick={() => onRequestUpdate(mod)}
                       disabled={busy}
-                      title={t("mods.card.requestUpdateTooltip", {
-                        defaultValue: "Ask the super admin to approve and install this update.",
-                      })}
+                      title={context === "conan"
+                        ? t("mods.card.updateConanTooltip", { defaultValue: "Download and install this Conan Workshop update." })
+                        : t("mods.card.requestUpdateTooltip", { defaultValue: "Ask the super admin to approve and install this update." })}
                     >
-                      {t("mods.card.requestUpdateTo", {
-                        defaultValue: "Request Update to {{version}}",
-                        version: mod.latestVersion,
-                      })}
+                      {context === "conan"
+                        ? t("mods.card.updateConan", { defaultValue: "Update Mod" })
+                        : t("mods.card.requestUpdateTo", {
+                            defaultValue: "Request Update to {{version}}",
+                            version: mod.latestVersion,
+                          })}
                     </ActionButton>
                   ))}
                 <ActionButton variant="danger" size="sm" icon={<Trash2 />} onClick={() => onRemove(mod)} disabled={busy}>

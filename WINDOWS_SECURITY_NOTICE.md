@@ -25,7 +25,7 @@ A warning is not proof that a file is safe, and it is not proof that a file is m
 PowerShell verification:
 
 ```powershell
-Get-FileHash .\ExilesGameManager-Setup-v0.8.1-beta.7.exe -Algorithm SHA256
+Get-FileHash .\ExilesGameManager-Setup-v0.8.1-beta.8.exe -Algorithm SHA256
 ```
 
 The resulting hash must exactly match the hash published with that release.

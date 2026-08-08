@@ -824,7 +824,9 @@
         "title": "UE4SSをアンインストールしますか?",
         "description": "UE4SSローダーとその組み込みMODが削除されます。自分でインストールしたMOD（Nexus由来のものなど）はそのまま残りますが、UE4SSなしでは読み込まれません。",
         "confirm": "アンインストール"
-      }
+      },
+      "workshopDependencyNotice": "Steam Workshop の MOD をインストールしても、実行時依存関係は自動ではインストールされません。Workshop MOD が UE4SS を必要とする場合は、Steam Workshop から最新の UE4SS Experimental (Palworld) をインストールしてください。PalSchema が必要な場合は、PalSchema も Steam Workshop からインストールしてください。",
+      "legacyCleanupNotice": "Steam Workshop から最新の UE4SS Experimental (Palworld) をインストールする前に、このパネルから古い UE4SS を先にアンインストールしてください。古い UE4SS ファイルが残っていると、PalSchema やそれに依存する MOD が動作しないことがあります。"
     },
     "nexusBrowse": {
       "title": "Nexus Modsを閲覧",
@@ -926,7 +928,8 @@
     "steamWishlist": {
       "title": "Steam Workshop Wishlist",
       "description": "Steam Workshop requests are managed separately from Nexus Mods. The super admin downloads approved items through SteamCMD and installs them for the selected server.",
-      "empty": "No Steam Workshop mods are waiting for approval."
+      "empty": "No Steam Workshop mods are waiting for approval.",
+      "runtimeDependencyNotice": "Workshop のインストールで導入されるのは、選択した Workshop アイテムだけです。UE4SS を必要とする MOD には Steam Workshop から最新の UE4SS Experimental (Palworld) をインストールする必要があります。PalSchema を必要とする MOD には、Steam Workshop から PalSchema もインストールする必要があります。"
     }
   },
   "serverControl": {
@@ -1030,6 +1033,20 @@
       "countdownStartedMessage": "サーバーは{{seconds}}秒後に静まります。",
       "countdownCancelledTitle": "カウントダウンをキャンセルしました",
       "countdownCancelledMessage": "ワールドの運命はひとまず回避されました。"
+    },
+    "liveConsole": {
+      "title": "ライブコンソール",
+      "connected": "ConanSandbox.log をリアルタイムで追跡しています。",
+      "waiting": "ConanSandbox.log を待機しています...",
+      "empty": "サーバー出力はまだありません。",
+      "commandPlaceholder": "RCON コマンド（例: ShowPlayers）...",
+      "sending": "送信中...",
+      "send": "送信",
+      "clear": "クリア",
+      "security": "RCON は 127.0.0.1 のみに接続します。RCON パスワードがブラウザーに送信されることはありません。",
+      "rconConnected": "RCON 接続済み",
+      "rconConfigured": "RCON 設定済み",
+      "rconUnavailable": "RCON 利用不可"
     }
   },
   "launcherOptions": {
@@ -1238,7 +1255,26 @@
       "cancel": "キャンセル",
       "deploy": "デプロイ",
       "close": "閉じる",
-      "queryPort": "Steamクエリポート"
+      "queryPort": "Steamクエリポート",
+      "gameSelection": "ゲーム",
+      "availableNow": "利用可能",
+      "preparedNotInstallable": "準備済み — インストールは後日対応",
+      "providerPending": "このエディションはSteamブランチ、実行ファイル、ポート役割、機能まで登録済みです。Conanランタイム、設定、RCONプロバイダーが完成するまでデプロイは無効です。",
+      "creationMethod": "作成方法",
+      "freshSteamCmd": "SteamCMDで新規ダウンロード",
+      "cleanCopyOf": "クリーンなローカルコピー: {{name}}",
+      "cloneHint": "ローカルコピーはサーバーファイルを再利用し、セーブ、MOD、ログ、ランタイムデータを除外します。元サーバーは停止中で、同じエディションである必要があります。",
+      "descriptionGeneric": "選択したゲームプロバイダーで完全に分離された専用サーバーを作成します。",
+      "descriptionPalworld": "SteamCMDで、独自のフォルダ、MOD、ポートを持つ新しい独立したPalworld専用サーバーをインストールします。",
+      "descriptionConanEnhanced": "現在のSteamブランチとプロバイダー固有ポートでConan Exiles Enhanced専用サーバーを準備します。",
+      "descriptionConanLegacy": "Conan-Exiles-Legacy SteamブランチでConan Exiles Legacy専用サーバーを準備します。",
+      "placeholderGeneric": "マイゲームサーバー",
+      "placeholderPalworld": "マイPalworldサーバー",
+      "placeholderConanEnhanced": "マイConan Enhancedサーバー",
+      "placeholderConanLegacy": "マイConan Legacyサーバー",
+      "hintMultiGame": "EGMはプロバイダー固有のTCP/UDPポートを登録済みインスタンスと使用中ソケットに対して検証し、対応するWindowsファイアウォールプロファイルを作成します。",
+      "defaultLocationValue": "デフォルト: {{path}}",
+      "waitGameCaption": "サーバーのダウンロード中は← →とスペースで遊べます..."
     },
     "import": {
       "importedTitle": "サーバーをインポートしました",
@@ -1246,17 +1282,24 @@
       "detectFailedFallback": "どのSteamライブラリにもPalworldサーバーが見つかりませんでした。",
       "importFailedFallback": "そのフォルダをインポートできませんでした。",
       "title": "既存のサーバーをインポート",
-      "description": "既にインストール済みのPalworld専用サーバーを登録します。",
+      "description": "既存の専用サーバーを登録します。EGM はインポート前に選択したゲームのフォルダー構成を検証します。",
       "scanning": "Steamライブラリをスキャン中...",
       "autoDetect": "Steam経由で自動検出",
       "orManually": "または手動で入力",
       "serverName": "サーバー名",
-      "serverNamePlaceholder": "My Palworld Server",
+      "serverNamePlaceholder": "マイゲームサーバー",
       "installFolder": "インストールフォルダ",
       "browse": "参照",
       "cancel": "キャンセル",
       "importing": "インポート中...",
-      "import": "インポート"
+      "import": "インポート",
+      "notDetected": "既存のサーバーインストールを検出できませんでした。サーバーフォルダーを手動で選択してください。",
+      "analysis": {
+        "configUnavailableTitle": "サーバー設定を利用できません",
+        "configUnavailableMessage": "ConanSandbox\\Saved\\Config\\WindowsServer に Conan のサーバー設定が見つかりません。サーバーはインポートされましたが、Conan がこれらのファイルを作成するか、バックアップから復元されるまで設定を読み取れません。",
+        "saveUnavailableTitle": "サーバーセーブを利用できません",
+        "saveUnavailableMessage": "ConanSandbox\\Saved に Conan のゲームデータベースが見つかりません。新規インストールでは正常な場合があります。既存のワールドデータを利用する前に一度サーバーを起動するか、バックアップを復元してください。"
+      }
     }
   },
   "localApi": {

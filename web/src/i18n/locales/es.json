@@ -824,7 +824,9 @@
         "title": "¿Desinstalar UE4SS?",
         "description": "Esto elimina el cargador UE4SS y sus mods integrados. Los mods que instalaste tú mismo (como los de Nexus) permanecen en su lugar, pero no se cargarán sin él.",
         "confirm": "Desinstalar"
-      }
+      },
+      "workshopDependencyNotice": "Los mods de Steam Workshop no instalan automáticamente las dependencias de ejecución. Si un mod de Workshop requiere UE4SS, instala la versión actual de UE4SS Experimental (Palworld) desde Steam Workshop. Si requiere PalSchema, instala también PalSchema desde Steam Workshop.",
+      "legacyCleanupNotice": "Antes de instalar la versión actual de UE4SS Experimental (Palworld) desde Steam Workshop, desinstala primero cualquier instalación antigua de UE4SS desde este panel. Los archivos heredados de UE4SS pueden impedir que funcionen PalSchema y los mods que dependen de él."
     },
     "nexusBrowse": {
       "title": "Explorar Nexus Mods",
@@ -926,7 +928,8 @@
     "steamWishlist": {
       "title": "Steam Workshop Wishlist",
       "description": "Steam Workshop requests are managed separately from Nexus Mods. The super admin downloads approved items through SteamCMD and installs them for the selected server.",
-      "empty": "No Steam Workshop mods are waiting for approval."
+      "empty": "No Steam Workshop mods are waiting for approval.",
+      "runtimeDependencyNotice": "La instalación desde Workshop solo instala el elemento seleccionado. Los mods que requieren UE4SS necesitan la versión actual de UE4SS Experimental (Palworld) instalada desde Steam Workshop. Los mods que requieren PalSchema también necesitan PalSchema instalado desde Steam Workshop."
     }
   },
   "serverControl": {
@@ -1030,6 +1033,20 @@
       "countdownStartedMessage": "El servidor se silenciará en {{seconds}}s.",
       "countdownCancelledTitle": "Cuenta atrás cancelada",
       "countdownCancelledMessage": "El destino del reino se ha salvado, por ahora."
+    },
+    "liveConsole": {
+      "title": "Consola en vivo",
+      "connected": "Siguiendo ConanSandbox.log en tiempo real.",
+      "waiting": "Esperando ConanSandbox.log...",
+      "empty": "Aún no hay salida del servidor.",
+      "commandPlaceholder": "Comando RCON, p. ej. ShowPlayers...",
+      "sending": "Enviando...",
+      "send": "Enviar",
+      "clear": "Limpiar",
+      "security": "RCON se conecta únicamente a 127.0.0.1. La contraseña RCON nunca llega al navegador.",
+      "rconConnected": "RCON conectado",
+      "rconConfigured": "RCON configurado",
+      "rconUnavailable": "RCON no disponible"
     }
   },
   "launcherOptions": {
@@ -1238,7 +1255,26 @@
       "cancel": "Cancelar",
       "deploy": "Desplegar",
       "close": "Cerrar",
-      "queryPort": "Puerto de consulta de Steam"
+      "queryPort": "Puerto de consulta de Steam",
+      "gameSelection": "Juego",
+      "availableNow": "Disponible ahora",
+      "preparedNotInstallable": "Preparado — instalación pendiente",
+      "providerPending": "Esta edición ya incluye rama de Steam, ejecutables, funciones de puerto y capacidades. El despliegue seguirá desactivado hasta completar el entorno de Conan, la configuración y el proveedor RCON.",
+      "creationMethod": "Método de creación",
+      "freshSteamCmd": "Descarga nueva mediante SteamCMD",
+      "cleanCopyOf": "Copia local limpia de: {{name}}",
+      "cloneHint": "Una copia local reutiliza los archivos del servidor y excluye partidas, mods, registros y datos de ejecución. El servidor origen debe estar detenido y usar la misma edición.",
+      "descriptionGeneric": "Crea un servidor dedicado completamente aislado mediante el proveedor de juego seleccionado.",
+      "descriptionPalworld": "Instala un servidor dedicado de Palworld nuevo y aislado mediante SteamCMD con su propia carpeta, mods y puertos.",
+      "descriptionConanEnhanced": "Prepara un servidor dedicado de Conan Exiles Enhanced con la rama actual de Steam y puertos específicos del proveedor.",
+      "descriptionConanLegacy": "Prepara un servidor dedicado de Conan Exiles Legacy con la rama Conan-Exiles-Legacy de Steam.",
+      "placeholderGeneric": "Mi servidor de juego",
+      "placeholderPalworld": "Mi servidor Palworld",
+      "placeholderConanEnhanced": "Mi servidor Conan Enhanced",
+      "placeholderConanLegacy": "Mi servidor Conan Legacy",
+      "hintMultiGame": "EGM valida los puertos TCP/UDP específicos del proveedor frente a instancias registradas y sockets activos, y crea el perfil correspondiente del Firewall de Windows.",
+      "defaultLocationValue": "Predeterminado: {{path}}",
+      "waitGameCaption": "Usa ← → y Espacio mientras se descarga el servidor..."
     },
     "import": {
       "importedTitle": "Servidor importado",
@@ -1246,17 +1282,24 @@
       "detectFailedFallback": "No se encontró ningún servidor de Palworld en ninguna biblioteca de Steam.",
       "importFailedFallback": "No se pudo importar esa carpeta.",
       "title": "Importar un servidor existente",
-      "description": "Registra un servidor dedicado de Palworld que ya tengas instalado.",
+      "description": "Registra un servidor dedicado existente. EGM valida la estructura de carpetas del juego seleccionado antes de importarlo.",
       "scanning": "Escaneando bibliotecas de Steam...",
       "autoDetect": "Detectar automáticamente vía Steam",
       "orManually": "o introducir manualmente",
       "serverName": "Nombre del servidor",
-      "serverNamePlaceholder": "Mi servidor Palworld",
+      "serverNamePlaceholder": "Mi servidor de juego",
       "installFolder": "Carpeta de instalación",
       "browse": "Explorar",
       "cancel": "Cancelar",
       "importing": "Importando...",
-      "import": "Importar"
+      "import": "Importar",
+      "notDetected": "No se detectó ninguna instalación de servidor existente. Selecciona manualmente la carpeta del servidor.",
+      "analysis": {
+        "configUnavailableTitle": "Configuración del servidor no disponible",
+        "configUnavailableMessage": "No se encontró ninguna configuración de Conan en ConanSandbox\\Saved\\Config\\WindowsServer. EGM importó el servidor, pero no podrá leer los ajustes hasta que Conan cree estos archivos o se restauren desde una copia de seguridad.",
+        "saveUnavailableTitle": "Partida del servidor no disponible",
+        "saveUnavailableMessage": "No se encontró ninguna base de datos de Conan en ConanSandbox\\Saved. Esto puede ser normal en una instalación nueva; inicia el servidor una vez o restaura una copia de seguridad antes de esperar datos de mundo existentes."
+      }
     }
   },
   "localApi": {

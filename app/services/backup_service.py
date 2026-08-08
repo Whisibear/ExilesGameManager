@@ -14,7 +14,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from app.services import activity_log, automation_store, instance_store, palworld_rest, process_manager, safe_replace
+from app.services import activity_log, automation_store, conan_process_manager, instance_store, palworld_rest, process_manager, safe_replace
 from app.services.palworld_rest import PalworldRestError
 from app.services.safe_replace import SafeReplaceError
 
@@ -27,7 +27,16 @@ class BackupError(Exception):
         self.message = message
 
 
+def _game_family(instance: dict[str, Any]) -> str:
+    try:
+        return str(instance_store.get_game_definition(instance).family)
+    except Exception:
+        return str(instance.get("gameFamily") or "palworld")
+
+
 def _saved_dir(instance: dict[str, Any]) -> Path:
+    if _game_family(instance) == "conan_exiles":
+        return Path(instance["serverPath"]) / "ConanSandbox" / "Saved"
     return Path(instance["serverPath"]) / "Pal" / "Saved"
 
 
@@ -80,8 +89,12 @@ def _prune_old_backups(instance_id: str) -> None:
             shutil.rmtree(backups.pop(0), ignore_errors=True)
 
 
-def _copy_backup(src: Path, dest: Path) -> None:
-    shutil.copytree(src, dest / "Saved")
+def _copy_backup(src: Path, dest: Path, *, exclude_launcher_ini: bool = False) -> None:
+    def ignore(_directory: str, names: list[str]) -> set[str]:
+        if not exclude_launcher_ini:
+            return set()
+        return {name for name in names if name.casefold() == "dedicatedserverlauncher.ini"}
+    shutil.copytree(src, dest / "Saved", ignore=ignore)
 
 
 def _unique_backup_dest(instance_id: str, timestamp: str) -> Path:
@@ -113,7 +126,7 @@ async def _create_snapshot(
         return None
 
     dest = await asyncio.to_thread(_unique_backup_dest, instance["id"], datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
-    await asyncio.to_thread(_copy_backup, src, dest)
+    await asyncio.to_thread(_copy_backup, src, dest, exclude_launcher_ini=_game_family(instance) == "conan_exiles")
     manifest = await asyncio.to_thread(safe_replace.build_manifest, dest)
 
     record = {
@@ -137,13 +150,14 @@ async def run_backup(instance: dict[str, Any], *, kind: str = "manual") -> dict[
         raise FileNotFoundError(f"No save data found at {src} - has this server ever been started?")
 
     live_save_forced = False
-    try:
-        await palworld_rest.save(instance)
-        await asyncio.sleep(2)  # give the save write a moment to land on disk before copying
-        live_save_forced = True
-        process_manager.record_save(instance["id"])
-    except PalworldRestError as e:
-        logger.info("backup_service: skipping live save before backup (%s)", e.message)
+    if _game_family(instance) == "palworld":
+        try:
+            await palworld_rest.save(instance)
+            await asyncio.sleep(2)
+            live_save_forced = True
+            process_manager.record_save(instance["id"])
+        except PalworldRestError as e:
+            logger.info("backup_service: skipping live save before backup (%s)", e.message)
 
     record = await _create_snapshot(instance, kind=kind, live_save_forced=live_save_forced)
     if record is None:
@@ -169,17 +183,15 @@ async def backup_before_import(instance: dict[str, Any]) -> dict[str, Any] | Non
 
 
 async def backup_before_mod_update(instance: dict[str, Any]) -> dict[str, Any]:
-    """Create a compact safety backup before Workshop mod updates.
-
-    Only Pal/Saved and Mods are copied. The large Pal binaries/content tree is
-    intentionally excluded. This keeps update backups useful and reasonably
-    small while preserving world/config data and the complete mod setup.
-    """
+    """Create a compact, game-aware safety snapshot before Workshop updates."""
     server_root = Path(instance["serverPath"])
-    sources = [(server_root / "Pal" / "Saved", "Pal/Saved"), (server_root / "Mods", "Mods")]
-    existing = [(src, rel) for src, rel in sources if src.is_dir()]
+    if _game_family(instance) == "conan_exiles":
+        sources = [(server_root / "ConanSandbox" / "Saved", "ConanSandbox/Saved"), (server_root / "ConanSandbox" / "Mods" / "modlist.txt", "ConanSandbox/Mods/modlist.txt")]
+    else:
+        sources = [(server_root / "Pal" / "Saved", "Pal/Saved"), (server_root / "Mods", "Mods")]
+    existing = [(src, rel) for src, rel in sources if src.exists()]
     if not existing:
-        raise FileNotFoundError("Neither Pal/Saved nor Mods exists for this server.")
+        raise FileNotFoundError("No save or mod configuration data exists for this server.")
 
     base = instance_store.instance_dir(instance["id"]) / "mod_update_backups"
     base.mkdir(parents=True, exist_ok=True)
@@ -195,25 +207,27 @@ async def backup_before_mod_update(instance: dict[str, Any]) -> dict[str, Any]:
     for src, rel in existing:
         target = dest.joinpath(*rel.split("/"))
         target.parent.mkdir(parents=True, exist_ok=True)
-        await asyncio.to_thread(shutil.copytree, src, target)
+        if src.is_dir():
+            exclude = _game_family(instance) == "conan_exiles" and rel == "ConanSandbox/Saved"
+            await asyncio.to_thread(_copy_tree_filtered, src, target, exclude)
+        else:
+            await asyncio.to_thread(shutil.copy2, src, target)
         copied.append(rel)
 
     manifest = await asyncio.to_thread(safe_replace.build_manifest, dest)
-    record = {
-        "timestamp": dest.name,
-        "kind": "pre_mod_update",
-        "sizeBytes": await asyncio.to_thread(_dir_size, dest),
-        "fileCount": len(manifest),
-        "folders": copied,
-        "folder": str(dest),
-    }
+    record = {"timestamp": dest.name, "kind": "pre_mod_update", "sizeBytes": await asyncio.to_thread(_dir_size, dest), "fileCount": len(manifest), "folders": copied, "folder": str(dest)}
     (dest / "meta.json").write_text(json.dumps({**record, "manifest": manifest}, indent=2), encoding="utf-8")
-    activity_log.log(
-        "info",
-        instance.get("name") or "Workshop",
-        f"Created mod-update backup of {', '.join(copied)} at {dest}.",
-    )
+    activity_log.log("info", instance.get("name") or "Workshop", f"Created mod-update backup of {', '.join(copied)} at {dest}.", instance_id=instance.get("id"))
     return record
+
+
+def _copy_tree_filtered(src: Path, target: Path, exclude_launcher_ini: bool) -> None:
+    def ignore(_directory: str, names: list[str]) -> set[str]:
+        if not exclude_launcher_ini:
+            return set()
+        return {name for name in names if name.casefold() == "dedicatedserverlauncher.ini"}
+    shutil.copytree(src, target, ignore=ignore)
+
 
 def _load_meta(folder: Path) -> dict[str, Any] | None:
     meta_path = folder / "meta.json"
@@ -309,13 +323,19 @@ async def restore_backup(instance: dict[str, Any], timestamp: str) -> dict[str, 
     backup_saved = folder / "Saved"
     legacy_save_games = folder / "SaveGames"
     if not backup_saved.is_dir() and not legacy_save_games.is_dir():
-        raise BackupError(f"Backup '{timestamp}' has no save data (Pal/Saved) to restore.")
+        raise BackupError(f"Backup '{timestamp}' has no save data compatible with this server to restore.")
 
     server_was_stopped = False
-    status = process_manager.get_status(instance["id"])
-    if status["state"] != "offline":
-        await asyncio.to_thread(process_manager.stop, instance["id"])
-        server_was_stopped = True
+    if _game_family(instance) == "conan_exiles":
+        status = conan_process_manager.get_status(instance)
+        if status["state"] != "offline":
+            await asyncio.to_thread(conan_process_manager.stop, instance)
+            server_was_stopped = True
+    else:
+        status = process_manager.get_status(instance["id"])
+        if status["state"] != "offline":
+            await asyncio.to_thread(process_manager.stop, instance["id"])
+            server_was_stopped = True
 
     rollback_record = await _create_snapshot(instance, kind="pre_restore")
     live_saved = _saved_dir(instance)

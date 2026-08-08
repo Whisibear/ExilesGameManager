@@ -824,7 +824,9 @@
         "title": "要卸载UE4SS吗？",
         "description": "这将移除UE4SS加载器及其内置模组。你自己安装的模组（例如来自Nexus的模组）将保留原位，但没有UE4SS将无法加载。",
         "confirm": "卸载"
-      }
+      },
+      "workshopDependencyNotice": "Steam Workshop 模组不会自动安装运行时依赖项。如果某个 Workshop 模组需要 UE4SS，请从 Steam Workshop 安装当前的 UE4SS Experimental (Palworld)。如果还需要 PalSchema，也请从 Steam Workshop 安装 PalSchema。",
+      "legacyCleanupNotice": "从 Steam Workshop 安装当前的 UE4SS Experimental (Palworld) 之前，请先在此面板中卸载任何旧版 UE4SS。遗留的旧版 UE4SS 文件可能导致 PalSchema 及依赖它的模组无法正常工作。"
     },
     "nexusBrowse": {
       "title": "浏览Nexus Mods",
@@ -926,7 +928,8 @@
     "steamWishlist": {
       "title": "Steam Workshop Wishlist",
       "description": "Steam Workshop requests are managed separately from Nexus Mods. The super admin downloads approved items through SteamCMD and installs them for the selected server.",
-      "empty": "No Steam Workshop mods are waiting for approval."
+      "empty": "No Steam Workshop mods are waiting for approval.",
+      "runtimeDependencyNotice": "从 Workshop 安装时只会安装所选的 Workshop 项目。需要 UE4SS 的模组必须从 Steam Workshop 安装当前的 UE4SS Experimental (Palworld)。需要 PalSchema 的模组还必须从 Steam Workshop 安装 PalSchema。"
     }
   },
   "serverControl": {
@@ -1030,6 +1033,20 @@
       "countdownStartedMessage": "服务器将在{{seconds}}秒后归于寂静。",
       "countdownCancelledTitle": "倒计时已取消",
       "countdownCancelledMessage": "世界的命运暂时得以幸免。"
+    },
+    "liveConsole": {
+      "title": "实时控制台",
+      "connected": "正在实时跟踪 ConanSandbox.log。",
+      "waiting": "正在等待 ConanSandbox.log...",
+      "empty": "尚无服务器输出。",
+      "commandPlaceholder": "RCON 命令，例如 ShowPlayers...",
+      "sending": "正在发送...",
+      "send": "发送",
+      "clear": "清空",
+      "security": "RCON 仅连接到 127.0.0.1。RCON 密码绝不会发送到浏览器。",
+      "rconConnected": "RCON 已连接",
+      "rconConfigured": "RCON 已配置",
+      "rconUnavailable": "RCON 不可用"
     }
   },
   "launcherOptions": {
@@ -1238,7 +1255,26 @@
       "cancel": "取消",
       "deploy": "部署",
       "close": "关闭",
-      "queryPort": "Steam查询端口"
+      "queryPort": "Steam查询端口",
+      "gameSelection": "游戏",
+      "availableNow": "当前可用",
+      "preparedNotInstallable": "已准备 — 等待安装支持",
+      "providerPending": "此版本已配置Steam分支、可执行文件、端口角色和功能。Conan运行时、配置与RCON提供程序完成前，部署保持禁用。",
+      "creationMethod": "创建方式",
+      "freshSteamCmd": "通过SteamCMD全新下载",
+      "cleanCopyOf": "创建干净的本地副本：{{name}}",
+      "cloneHint": "本地副本会复用服务器文件，但排除存档、模组、日志和运行时数据。源服务器必须停止并使用相同游戏版本。",
+      "descriptionGeneric": "使用所选游戏提供程序创建完全隔离的专用服务器。",
+      "descriptionPalworld": "通过SteamCMD安装全新、完全隔离的Palworld专用服务器，并使用独立文件夹、模组和端口。",
+      "descriptionConanEnhanced": "使用当前Steam分支和提供程序专用端口准备Conan Exiles Enhanced专用服务器。",
+      "descriptionConanLegacy": "使用Conan-Exiles-Legacy Steam分支准备Conan Exiles Legacy专用服务器。",
+      "placeholderGeneric": "我的游戏服务器",
+      "placeholderPalworld": "我的Palworld服务器",
+      "placeholderConanEnhanced": "我的Conan Enhanced服务器",
+      "placeholderConanLegacy": "我的Conan Legacy服务器",
+      "hintMultiGame": "EGM会根据已注册实例和主机活动套接字验证提供程序专用TCP/UDP端口，然后创建对应的Windows防火墙配置。",
+      "defaultLocationValue": "默认：{{path}}",
+      "waitGameCaption": "服务器下载时可使用← →和空格键游戏..."
     },
     "import": {
       "importedTitle": "服务器已导入",
@@ -1246,17 +1282,24 @@
       "detectFailedFallback": "未在任何Steam库中找到Palworld服务器。",
       "importFailedFallback": "无法导入该文件夹。",
       "title": "导入现有服务器",
-      "description": "注册一个你已经安装的Palworld专用服务器。",
+      "description": "注册现有专用服务器。EGM 会在导入前验证所选游戏的文件夹结构。",
       "scanning": "正在扫描Steam库...",
       "autoDetect": "通过Steam自动检测",
       "orManually": "或手动输入",
       "serverName": "服务器名称",
-      "serverNamePlaceholder": "我的Palworld服务器",
+      "serverNamePlaceholder": "我的游戏服务器",
       "installFolder": "安装文件夹",
       "browse": "浏览",
       "cancel": "取消",
       "importing": "正在导入...",
-      "import": "导入"
+      "import": "导入",
+      "notDetected": "未检测到现有服务器安装。请手动选择服务器文件夹。",
+      "analysis": {
+        "configUnavailableTitle": "服务器配置不可用",
+        "configUnavailableMessage": "在 ConanSandbox\\Saved\\Config\\WindowsServer 中未找到 Conan 服务器配置。EGM 已导入服务器，但在 Conan 创建这些文件或从备份恢复之前无法读取设置。",
+        "saveUnavailableTitle": "服务器存档不可用",
+        "saveUnavailableMessage": "在 ConanSandbox\\Saved 中未找到 Conan 游戏数据库。全新安装时这可能是正常现象；请先启动服务器一次或恢复备份，再使用已有世界数据。"
+      }
     }
   },
   "localApi": {

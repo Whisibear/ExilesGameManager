@@ -176,6 +176,14 @@ if (-not $?) { throw 'UpdateWorker build failed.' }
 Assert-PE $workerExe
 
 Assert-OnedirRuntime $appDir
+$desktopEntry = [System.IO.File]::ReadAllText((Join-Path $root 'desktop_app.py'), [System.Text.Encoding]::UTF8)
+$requirementsText = [System.IO.File]::ReadAllText((Join-Path $root 'requirements.txt'), [System.Text.Encoding]::UTF8)
+if ($desktopEntry -notmatch 'ExilesGameManager\.Quit' -or $desktopEntry -notmatch 'pystray\.MenuItem' -or $desktopEntry -notmatch 'server\.should_exit') {
+    throw 'E.11 system-tray/graceful-shutdown contract is missing from desktop_app.py.'
+}
+if ($requirementsText -notmatch '(?im)^pystray' -or $requirementsText -notmatch '(?im)^Pillow') {
+    throw 'E.11 tray runtime dependencies are missing from requirements.txt.'
+}
 Assert-VersionMetadata $appExe 'Whisibear' 'Exiles Game Manager' $expectedAppVersion
 Assert-VersionMetadata $workerExe 'Whisibear' 'Exiles Game Manager' $expectedAppVersion
 
@@ -206,8 +214,20 @@ if ($signingConfigured) {
 } else { Write-Host '[INFO] Variante-4-Build ohne digitale Signatur. Onedir, Manifest, Metadaten und Defender-Prüfung bleiben aktiv.' -ForegroundColor Cyan }
 
 Write-Step 'Smoke testing packaged Onedir application'
-$proc=Start-Process -FilePath $appExe -WorkingDirectory $appDir -PassThru
-try { Wait-Health $proc } finally { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
+$previousSuppressBrowser = $env:EGM_SUPPRESS_BROWSER
+$previousSuppressTray = $env:EGM_SUPPRESS_TRAY
+$env:EGM_SUPPRESS_BROWSER = '1'
+$env:EGM_SUPPRESS_TRAY = '1'
+$proc = $null
+try {
+    $proc=Start-Process -FilePath $appExe -WorkingDirectory $appDir -PassThru
+    Wait-Health $proc
+}
+finally {
+    if ($proc) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
+    $env:EGM_SUPPRESS_BROWSER = $previousSuppressBrowser
+    $env:EGM_SUPPRESS_TRAY = $previousSuppressTray
+}
 
 $iscc=Find-InnoSetupCompiler
 if (-not $iscc) {

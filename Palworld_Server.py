@@ -1,26 +1,9 @@
-import asyncio
-import sys
+"""Compatibility entry point for pre-multi-game installations."""
 
-import uvicorn
+from EGM_Server import configure_windows_event_loop, main
 
-from app.services import runtime_logging
-
-
-def configure_windows_event_loop() -> None:
-    # Modern Python versions select the appropriate Windows event loop by
-    # default. Keeping this hook avoids launcher/API changes without invoking
-    # the deprecated asyncio policy APIs removed in Python 3.16.
-    return None
+__all__ = ["configure_windows_event_loop", "main"]
 
 
 if __name__ == "__main__":
-    runtime_logging.install_console_capture()
-    sys.excepthook = runtime_logging.log_unhandled_exception
-    configure_windows_event_loop()
-    uvicorn.run(
-        "app.main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=False,
-        access_log=True,
-    )
+    main()

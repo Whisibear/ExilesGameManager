@@ -516,12 +516,16 @@ _ADVANCED_META: dict[str, dict[str, Any]] = {
     "BlockRespawnTime": {
         "label": "Respawn Cooldown (seconds)",
         "group": "Time and Survival",
-        "help": "Base respawn cooldown in seconds after death.",
+        "help": "Base respawn cooldown in seconds after death. EGM enforces a safe minimum/default of 1 second because 0 can cause broken respawn behavior in-game.",
+        "minimum": 1,
+        "default": 1,
     },
     "RespawnPenaltyDurationThreshold": {
         "label": "Quick-Death Threshold (seconds)",
         "group": "Time and Survival",
-        "help": "Survival time in seconds below which a short recent life counts toward the repeated-death respawn penalty.",
+        "help": "Survival time in seconds below which a short recent life counts toward the repeated-death respawn penalty. EGM enforces a safe minimum/default of 1 second because 0 can cause broken respawn behavior in-game.",
+        "minimum": 1,
+        "default": 1,
     },
     "RespawnPenaltyTimeScale": {
         "label": "Respawn Penalty Multiplier",
